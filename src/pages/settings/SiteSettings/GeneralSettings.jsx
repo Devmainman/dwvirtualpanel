@@ -1,8 +1,36 @@
 import React from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { API_BASE_URL } from '../../../api/config';
+import { useAuth } from '../../../context/AuthContext';
 import { Globe, Link, Mail, Signal, Currency, Settings } from 'lucide-react';
 import SettingCard from './SettingCard';
 
 const GeneralSettings = ({ settings, handleInputChange }) => {
+  const [currencies, setCurrencies] = useState([]);
+  const [isLoadingCurrencies, setIsLoadingCurrencies] = useState(true);
+  const { token } = useAuth();
+
+  useEffect(() => {
+    const fetchCurrencies = async () => {
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/admin/currencies?status=Enabled&limit=151`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setCurrencies(response.data.currencies || []);
+      } catch (error) {
+        console.error('Failed to fetch currencies', error);
+      } finally {
+        setIsLoadingCurrencies(false);
+      }
+    };
+
+    if (token) {
+      fetchCurrencies();
+    }
+  }, [token]);
+
   const validateAdminPath = (value) => {
     if (value && !/^[a-zA-Z0-9_-]+$/.test(value)) {
       return 'Admin Path must contain only letters, numbers, hyphens, or underscores';
@@ -101,13 +129,25 @@ const GeneralSettings = ({ settings, handleInputChange }) => {
           </div>
           <div>
             <label className="block text-sm font-medium text-[#6B7280] mb-1">Default Currency</label>
-            <input
-              type="text"
+            {isLoadingCurrencies ? (
+              <div className="w-full bg-[#303943] border border-[#3A4451] text-[#A5AFC4] p-2 rounded-md">
+                Loading currencies...
+              </div>
+            ) : (
+              <select
               name="defaultCurrency"
-              value={settings.defaultCurrency || 'Bulgarian Lev (BGN)'}
+              value={settings.defaultCurrency || ''}
               onChange={handleInputChange}
               className="w-full bg-[#303943] border border-[#3A4451] text-[#A5AFC4] p-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            >
+              <option value="">Select a currency</option>
+              {currencies.map((currency) => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.title} ({currency.code})
+                </option>
+              ))}
+            </select>
+            )}
           </div>
          
         </div>

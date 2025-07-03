@@ -3,6 +3,7 @@ import { ChevronRight, Search, Check, X, Trash2, Clock, AlertCircle, CheckCircle
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { API_BASE_URL } from '../../api/config';
+import { STATIC_BASE_URL } from '../../api/config';
 
 const api = axios.create({
   baseURL: API_BASE_URL
@@ -93,6 +94,8 @@ export default function Deposit() {
   };
 
   const viewPaymentProof = (proofUrl) => {
+    console.log('Viewing payment proof URL:', proofUrl);
+    console.log('Full image src:', `${API_BASE_URL}${proofUrl}`);
     setCurrentProof(proofUrl);
     setShowProofModal(true);
   };
@@ -124,6 +127,16 @@ export default function Deposit() {
     setCurrentPage(1);
   };
 
+  const formatCurrency = (amount, currency) => {
+    if (!amount || !currency) return '';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2,
+    }).format(amount);
+  };
+  
+
   return (
     <div className="flex-1 overflow-y-auto bg-[#1E252C] p-6 text-[#A5AFC4]">
       {/* Proof View Modal */}
@@ -140,15 +153,16 @@ export default function Deposit() {
               </button>
             </div>
             <div className="p-4">
-              <img 
-                src={`${API_BASE_URL}${currentProof}`} 
-                alt="Payment Proof" 
-                className="w-full h-auto rounded-md border border-[#3A4451]"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = 'https://via.placeholder.com/600x400?text=Proof+Not+Available';
-                }}
-              />
+            {console.log('Modal image src:', `${STATIC_BASE_URL}/Uploads${currentProof}`)}
+            <img 
+               src={`${STATIC_BASE_URL}/Uploads${currentProof}`}
+              alt="Payment Proof"
+              className="w-full h-auto rounded-md border border-[#3A4451]"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'https://via.placeholder.com/600x400?text=Proof+Not+Available';
+              }}
+            />
               <div className="mt-4 flex justify-end">
                 <button
                   onClick={() => setShowProofModal(false)}
@@ -272,7 +286,7 @@ export default function Deposit() {
                       {deposit.paymentMethod}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-[#A5AFC4]">
-                      {deposit.amount}
+                      {formatCurrency(deposit.amount, deposit.currency)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button 

@@ -10,4 +10,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'), // ✅ alias '@' to 'src'
     },
   },
+  server: {
+    strictPort: true,
+    hmr: {
+      overlay: false, 
+    },
+  },
 });

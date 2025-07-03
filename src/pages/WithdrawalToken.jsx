@@ -1,78 +1,109 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Trash2, Plus, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
-
-// Mock data
-const mockUsers = [
-  { accountId: 'ACC1001', fullName: 'John Doe' },
-  { accountId: 'ACC1002', fullName: 'Jane Smith' },
-  { accountId: 'ACC1003', fullName: 'Bob Johnson' },
-  { accountId: 'ACC1004', fullName: 'Alice Williams' },
-];
-
-const mockTokens = [
-  { id: '1', status: 'Unused', date: new Date('2023-05-15'), accountId: 'ACC1001', fullName: 'John Doe', token: 'XKJ9-7H2P-4LQ1' },
-  { id: '2', status: 'Used', date: new Date('2023-05-14'), accountId: 'ACC1002', fullName: 'Jane Smith', token: 'M3N8-B5V7-C9X2' },
-  { id: '3', status: 'Unused', date: new Date('2023-05-13'), accountId: 'ACC1003', fullName: 'Bob Johnson', token: 'Z1Y4-W6U8-T0R3' },
-];
+import { API_BASE_URL } from '../api/config';
+import { useAuth } from '../context/AuthContext';
 
 export default function WithdrawalToken() {
-  const [tokens, setTokens] = useState(mockTokens);
-  const [users] = useState(mockUsers);
+  const { token } = useAuth();
+
+  const [tokens, setTokens] = useState([]);
+  const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState('');
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Generate a random token
-  const generateToken = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let token = '';
-    for (let i = 0; i < 12; i++) {
-      token += chars.charAt(Math.floor(Math.random() * chars.length));
-      if ([3, 7].includes(i)) token += '-';
-    }
-    return token;
-  };
-
-  // Create new token
-  const handleCreateToken = () => {
-    if (!selectedUser) return;
-    
-    const user = users.find(u => u.accountId === selectedUser);
-    const newToken = {
-      id: Date.now().toString(),
-      status: 'Unused',
-      date: new Date(),
-      accountId: user.accountId,
-      fullName: user.fullName,
-      token: generateToken()
+  // Fetch users and tokens
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [tokensRes, usersRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/admin/withdrawal-tokens`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`${API_BASE_URL}/admin/users/simple-list`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+  
+        const tokensData = await tokensRes.json();
+        const usersData = await usersRes.json();
+  
+        // Parse dates
+        const parsedTokens = tokensData.map(token => ({
+          ...token,
+          date: new Date(token.date)
+        }));
+  
+        setTokens(parsedTokens);
+  
+        // ✅ Ensure only the array is stored
+        setUsers(Array.isArray(usersData.users) ? usersData.users : []);
+        console.log('usersData:', usersData);
+  
+      } catch (err) {
+        console.error('Error fetching data:', err);
+      }
     };
-    
-    setTokens([newToken, ...tokens]);
-    setIsModalOpen(false);
-    setSelectedUser('');
+  
+    fetchData();
+  }, [token]);
+
+
+  
+
+  // Create token
+  const handleCreateToken = async () => {
+    if (!selectedUser) return;
+  
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/withdrawal-tokens`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ accountId: selectedUser })
+      });
+  
+      const newTokenRaw = await res.json();
+      const newToken = {
+        ...newTokenRaw,
+        date: new Date(newTokenRaw.date)
+      };
+  
+      setTokens([newToken, ...tokens]);
+      setIsModalOpen(false);
+      setSelectedUser('');
+    } catch (err) {
+      console.error('Error creating token:', err);
+    }
   };
+  
 
   // Delete token
-  const handleDeleteToken = (id) => {
-    setTokens(tokens.filter(token => token.id !== id));
+  const handleDeleteToken = async (id) => {
+    try {
+      await fetch(`${API_BASE_URL}/admin/withdrawal-tokens/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setTokens(tokens.filter(t => t.id !== id));
+    } catch (err) {
+      console.error('Error deleting token:', err);
+    }
   };
 
-  // Filter tokens based on search term
   const filteredTokens = tokens.filter(token =>
-    token.accountId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    token.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    token.token.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    token.status.toLowerCase().includes(searchTerm.toLowerCase())
+    token.accountId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    token.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    token.token?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    token.status?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Pagination
   const totalPages = Math.ceil(filteredTokens.length / rowsPerPage);
-  const currentTokens = filteredTokens.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
+  const currentTokens = filteredTokens.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#1E252C] p-6 text-[#A5AFC4]">
@@ -212,7 +243,7 @@ export default function WithdrawalToken() {
 
       {/* Create Token Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 bg-opacity-75 flex items-center justify-center p-4 z-50">
           <div className="bg-[#282F36] rounded-lg shadow-xl w-full max-w-md border border-[#3A4451]">
             <div className="p-6">
               <h2 className="text-xl font-semibold mb-4 text-[#aab8c5]">Create Withdrawal Token</h2>
@@ -228,7 +259,7 @@ export default function WithdrawalToken() {
                     <option value="">Select a user</option>
                     {users.map(user => (
                       <option key={user.accountId} value={user.accountId}>
-                        {user.fullName} ({user.accountId})
+                        {user.fullName || user.email} ({user.accountId.slice(0, 6)}...)
                       </option>
                     ))}
                   </select>

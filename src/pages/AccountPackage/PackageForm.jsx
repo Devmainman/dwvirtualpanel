@@ -81,21 +81,6 @@ const PackageForm = ({
 )}
   </div>
 </div>
-        
-        <div>
-          <label className="block text-xs md:text-sm font-medium text-[#6B7280] mb-1">Currency</label>
-          <select
-            className="w-full bg-[#303943] border border-[#3A4451] text-[#A5AFC4] p-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            value={newPackage.currency}
-            onChange={(e) => setNewPackage({...newPackage, currency: e.target.value})}
-            disabled={isLoading}
-          >
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="GBP">GBP</option>
-          </select>
-        </div>
-        
         <div>
           <label className="block text-xs md:text-sm font-medium text-[#6B7280] mb-1">Amount*</label>
           <input

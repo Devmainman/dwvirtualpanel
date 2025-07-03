@@ -20,7 +20,12 @@ const WithdrawalSettings = () => {
     icon: null,
     status: 'Active',
     details: [{ label: '' }],
+    requiredSignal: 100,
+    minAmount: '',
+    maxAmount: ''
   });
+
+  
 
   const styles = {
     input: 'w-full bg-[#303943] border border-[#3A4451] text-[#A5AFC4] p-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent',
@@ -64,6 +69,10 @@ const WithdrawalSettings = () => {
         title: method.title,
         status: method.isActive ? 'Active' : 'Inactive',
         details: method.details || [],
+        requiredSignal: method.requiredSignal ?? 100,
+        minAmount: method.minAmount ?? 0,
+        maxAmount: method.maxAmount ?? 0,
+        currency: method.currency,
       }));
       
       console.log('Fetched Withdrawal Methods:', methods);
@@ -87,29 +96,28 @@ const WithdrawalSettings = () => {
       navigate('/login');
       return;
     }
-
+  
     if (formData.title.trim() === '') {
       toast.error('Title is required');
       return;
     }
-
+  
     const validDetails = formData.details.filter(d => d.label.trim());
     if (validDetails.length === 0) {
       toast.error('At least one detail is required');
       return;
     }
-
+  
     try {
       setIsLoading(true);
       const url = editingMethod 
         ? `${API_BASE_URL}/admin/withdrawal-methods/${editingMethod.id}`
         : `${API_BASE_URL}/admin/withdrawal-methods`;
-
+  
       const headers = { Authorization: `Bearer ${token}` };
       let response;
-
+  
       if (formData.icon instanceof File) {
-        console.log('Sending multipart/form-data with icon:', formData.icon.name);
         const formDataToSend = new FormData();
         if (!editingMethod) {
           formDataToSend.append('methodId', formData.title.toLowerCase().replace(/\s+/g, '_'));
@@ -118,32 +126,26 @@ const WithdrawalSettings = () => {
         formDataToSend.append('isActive', formData.status === 'Active');
         formDataToSend.append('details', JSON.stringify(validDetails));
         formDataToSend.append('icon', formData.icon);
-        formDataToSend.append('minAmount', 0);
-        formDataToSend.append('maxAmount', 10000);
-
-        console.log('FormData Entries:');
-        for (let [key, value] of formDataToSend.entries()) {
-          console.log(`${key}: ${value instanceof File ? value.name : value}`);
-        }
-
+        formDataToSend.append('minAmount', parseFloat(formData.minAmount));
+        formDataToSend.append('maxAmount', parseFloat(formData.maxAmount));
+        formDataToSend.append('requiredSignal', parseInt(formData.requiredSignal) || 100);
+  
         response = editingMethod
           ? await axios.put(url, formDataToSend, { headers })
           : await axios.post(url, formDataToSend, { headers });
       } else {
-        console.log('Sending application/json request');
         const jsonData = {
           title: formData.title,
           isActive: formData.status === 'Active',
           details: validDetails,
-          minAmount: 0,
-          maxAmount: 10000,
+          minAmount: parseFloat(formData.minAmount),
+          maxAmount: parseFloat(formData.maxAmount),
+          requiredSignal: parseInt(formData.requiredSignal) || 100,
         };
         if (!editingMethod) {
           jsonData.methodId = formData.title.toLowerCase().replace(/\s+/g, '_');
         }
-
-        console.log('JSON Payload:', jsonData);
-
+  
         response = editingMethod
           ? await axios.put(url, jsonData, {
               headers: { ...headers, 'Content-Type': 'application/json' },
@@ -152,10 +154,15 @@ const WithdrawalSettings = () => {
               headers: { ...headers, 'Content-Type': 'application/json' },
             });
       }
-
-      toast.success(`Withdrawal method ${editingMethod ? 'updated' : 'created'}`);
-      fetchWithdrawalMethods();
-      closeModal();
+  
+      if (response.data?.success) {
+        toast.success(`Withdrawal method ${editingMethod ? 'updated' : 'created'}`);
+        fetchWithdrawalMethods();
+        closeModal();
+      } else {
+        toast.error(response.data.message || 'Failed to save withdrawal method');
+      }
+  
     } catch (error) {
       console.error('Save withdrawal method error:', error.response?.data || error);
       if (error.response?.status === 401 || error.response?.status === 403) {
@@ -168,6 +175,7 @@ const WithdrawalSettings = () => {
       setIsLoading(false);
     }
   };
+  
 
   const deleteWithdrawalMethod = async (id) => {
     if (!token || !isAuthenticated) {
@@ -247,15 +255,21 @@ const WithdrawalSettings = () => {
     setSelectedMethod(null);
   };
 
-  const resetForm = () => {
+  const resetForm = (method) => {
+    if (!selectedMethod) return;
     setFormData({
       title: '',
       icon: null,
       status: 'Active',
       details: [{ label: '' }],
+      requiredSignal: 100,
+      minAmount: '',
+      maxAmount: '',
+      currency: selectedMethod.currency,
     });
     setEditingMethod(null);
   };
+  
 
   const openModal = (method = null) => {
     if (method) {
@@ -265,12 +279,17 @@ const WithdrawalSettings = () => {
         icon: null,
         status: method.status,
         details: method.details.map(d => ({ label: d.label })),
+        requiredSignal: method.requiredSignal || 100,
+        minAmount: method.minAmount ?? '',
+        maxAmount: method.maxAmount ?? '',
+        currency: method.currency,
       });
     } else {
       resetForm();
     }
     setIsModalOpen(true);
   };
+  
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -350,6 +369,22 @@ const WithdrawalSettings = () => {
   useEffect(() => {
     fetchWithdrawalMethods();
   }, [token, isAuthenticated]);
+
+  const getCurrencySymbol = (currencyCode) => {
+    try {
+      const formatted = new Intl.NumberFormat('en', {
+        style: 'currency',
+        currency: currencyCode,
+        currencyDisplay: 'symbol',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(0);
+  
+      return formatted.replace(/\d/g, '').trim(); // Remove numbers, keep symbol
+    } catch (err) {
+      return currencyCode; // fallback to code if unknown
+    }
+  };
 
   // ================== Render ================== //
   return (
@@ -466,66 +501,93 @@ const WithdrawalSettings = () => {
       </div>
 
       {/* Details Modal */}
-      {isDetailsModalOpen && selectedMethod && (
-        <div className="fixed inset-0 overflow-y-auto bg-black/30 backdrop-blur-[3px] flex items-center justify-center z-50 p-4">
-          <div className="bg-[#282F36] rounded-lg shadow-md p-6 w-full max-w-md border border-[#2F3944]">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-[#aab8c5]">
-                {selectedMethod.title} Details
-              </h2>
-              <button 
-                className="text-gray-400 hover:text-gray-300"
-                onClick={closeDetailsModal}
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 rounded-full bg-[#303943]">
-                  <MethodIcon icon={selectedMethod.icon} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium text-[#aab8c5]">{selectedMethod.title}</h3>
-                  <span 
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      selectedMethod.status === 'Active' 
-                        ? 'bg-green-900 text-green-100' 
-                        : 'bg-red-900 text-red-100'
-                    }`}
-                  >
-                    {selectedMethod.status}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="border-t border-[#3A4451] pt-4">
-                <h4 className="text-sm font-medium text-[#6B7280] mb-3">WITHDRAWAL DETAILS</h4>
-                <div className="space-y-3">
-                  {selectedMethod.details.map((detail, index) => (
-                    <div key={index} className="flex justify-between">
-                      <span className="text-sm text-[#6B7280]">{detail.label}</span>
-                      <span className="text-sm font-medium text-[#aab8c5]">[User will provide]</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-end mt-6">
-              <button 
-                className={styles.button.secondary}
-                onClick={closeDetailsModal}
-              >
-                Close
-              </button>
-            </div>
+{isDetailsModalOpen && selectedMethod && (
+  <div className="fixed inset-0 overflow-y-auto bg-black/30 backdrop-blur-[3px] flex items-center justify-center z-50 p-4">
+    <div className="bg-[#282F36] rounded-lg shadow-md p-6 w-full max-w-md border border-[#2F3944]">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-[#aab8c5]">
+          {selectedMethod.title} Details
+        </h2>
+        <button 
+          className="text-gray-400 hover:text-gray-300"
+          onClick={closeDetailsModal}
+        >
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 rounded-full bg-[#303943]">
+            <MethodIcon icon={selectedMethod.icon} />
+          </div>
+          <div>
+            <h3 className="text-lg font-medium text-[#aab8c5]">{selectedMethod.title}</h3>
+            <span 
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                selectedMethod.status === 'Active' 
+                  ? 'bg-green-900 text-green-100' 
+                  : 'bg-red-900 text-red-100'
+              }`}
+            >
+              {selectedMethod.status}
+            </span>
           </div>
         </div>
-      )}
+
+        <div className="border-t border-[#3A4451] pt-4">
+          <h4 className="text-sm font-medium text-[#6B7280] mb-3">WITHDRAWAL DETAILS</h4>
+          <div className="space-y-3">
+            {selectedMethod.details.map((detail, index) => (
+              <div key={index} className="flex justify-between">
+                <span className="text-sm text-[#6B7280]">{detail.label}</span>
+                <span className="text-sm font-medium text-[#aab8c5]">[User will provide]</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-between mt-4">
+            <span className="text-sm text-[#6B7280]">Required Signal</span>
+            <span className="text-sm font-medium text-[#aab8c5]">
+              {(selectedMethod.requiredSignal ?? 100)}%
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-sm text-[#6B7280]">Min Withdrawal</span>
+            <span className="text-sm font-medium text-[#aab8c5]">
+              {selectedMethod.minAmount !== undefined
+                ? `${getCurrencySymbol(selectedMethod.currency)}${selectedMethod.minAmount}`
+                : 'N/A'}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-sm text-[#6B7280]">Max Withdrawal</span>
+            <span className="text-sm font-medium text-[#aab8c5]">
+              {selectedMethod.maxAmount !== undefined
+                ? `${getCurrencySymbol(selectedMethod.currency)}${selectedMethod.maxAmount}`
+                : 'N/A'}
+            </span>
+          </div>
+
+        </div>
+      </div>
+
+      <div className="flex justify-end mt-6">
+        <button 
+          className={styles.button.secondary}
+          onClick={closeDetailsModal}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
       {/* Edit/Create Modal */}
       {isModalOpen && (
@@ -578,7 +640,7 @@ const WithdrawalSettings = () => {
                 )}
               </div>
               
-<div>
+              <div>
                 <label className="block text-sm font-medium text-[#6B7280] mb-1">Status</label>
                 <select 
                   className={styles.input}
@@ -589,7 +651,63 @@ const WithdrawalSettings = () => {
                   <option value="Inactive">Inactive</option>
                 </select>
               </div>
-              
+
+              <div>
+                <label className="block text-sm font-medium text-[#6B7280] mb-1">
+                  Required Signal (%) <span className="text-red-400">*</span>
+                </label>
+                <input 
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={formData.requiredSignal}
+                  onChange={(e) => setFormData({ ...formData, requiredSignal: e.target.value })}
+                  className={styles.input}
+                  placeholder="e.g. 80"
+                />
+              </div>
+
+              <div>
+              <label className="block text-sm font-medium text-[#6B7280] mb-1">
+                Minimum Withdrawal Amount <span className="text-red-400">*</span>
+              </label>
+              <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#6B7280] text-sm">
+                {getCurrencySymbol(formData.currency)}
+              </span>
+              <input 
+                type="number"
+                className={`${styles.input} pl-7`} // 👈 adjust padding for icon
+                min="0"
+                value={formData.minAmount}
+                onChange={(e) => setFormData({ ...formData, minAmount: e.target.value })}
+                placeholder="e.g. 10"
+              />
+            </div>
+
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#6B7280] mb-1">
+                Maximum Withdrawal Amount <span className="text-red-400">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#6B7280] text-sm">
+                  {getCurrencySymbol(formData.currency)}
+                </span>
+                <input 
+                  type="number"
+                  className={`${styles.input} pl-7`} // 👈 adjust padding for icon
+                  min="0"
+                  value={formData.maxAmount}
+                  onChange={(e) => setFormData({ ...formData, maxAmount: e.target.value })}
+                  placeholder="e.g. 10"
+                />
+              </div>
+
+            </div>
+
+
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="text-sm font-medium text-[#6B7280]">Details</label>

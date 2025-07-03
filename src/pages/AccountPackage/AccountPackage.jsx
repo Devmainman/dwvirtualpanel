@@ -14,7 +14,6 @@ const AccountPackage = () => {
   const [newPackage, setNewPackage] = useState({
     name: '',
     icon: '',
-    currency: 'USD',
     amount: '',
     status: 'Active',
     benefits: [''],
@@ -98,7 +97,6 @@ const handleAddPackage = async () => {
     if (newPackage.iconFile) {
       formData.append('icon', newPackage.iconFile); // Append the file directly
     }
-    formData.append('currency', newPackage.currency || 'USD');
     formData.append('amount', parseFloat(newPackage.amount));
     formData.append('status', newPackage.status || 'Active');
     formData.append('benefits', JSON.stringify(newPackage.benefits.filter(b => b.trim() !== '')));
@@ -155,7 +153,6 @@ const handleAddPackage = async () => {
     setNewPackage({
       name: pkg.name,
       icon: pkg.icon || '',
-      currency: pkg.currency || 'USD',
       amount: pkg.amount.toString(),
       status: pkg.status || 'Active',
       benefits: pkg.benefits?.length > 0 

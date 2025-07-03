@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, Search, Check, X, Trash2, Clock, AlertCircle, CheckCircle, AlertTriangle, Eye } from 'lucide-react';
-import { getAdminApiBaseUrl } from '../../api/config.js';
+import { API_BASE_URL } from '../../api/config.js';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext.jsx';
 
@@ -23,8 +23,7 @@ export default function Withdrawal() {
       setLoading(true);
       setError(null);
       try {
-        const adminApiBaseUrl = await getAdminApiBaseUrl(token);
-        const response = await axios.get(`${adminApiBaseUrl}/withdrawals`, {
+        const response = await axios.get(`${API_BASE_URL}/admin/withdrawals`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const transformedWithdrawals = response.data.withdrawals.map(w => ({
@@ -34,14 +33,12 @@ export default function Withdrawal() {
           fullName: `${w.user.firstName} ${w.user.lastName || ''}`,
           icon: w.method.icon,
           paymentMethod: w.method.title,
-          amount: `${w.amount} ${w.user.currency || 'NGN'}`,
+          amount: `${w.amount} ${w.user.currency}`,
           status: w.status,
-          bankName: w.details.find(d => d.label === 'Bank Name')?.value || '',
-          accountName: w.details.find(d => d.label === 'Account Name')?.value || '',
-          accountNumber: w.details.find(d => d.label === 'Account Number')?.value || '',
+          details: w.details, // ✅ keep full detail array
           withdrawalToken: w._id,
           receipt: w.receipt || ''
-        }));
+        }));        
         setWithdrawals(transformedWithdrawals);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch withdrawals');
@@ -389,24 +386,18 @@ export default function Withdrawal() {
               </div>
               
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-[#6B7280]">Bank Name</p>
-                    <p className="text-[#A5AFC4]">{selectedWithdrawal.bankName}</p>
+              <div className="grid grid-cols-2 gap-4">
+                {selectedWithdrawal.details.map((item, i) => (
+                  <div key={i}>
+                    <p className="text-sm text-[#6B7280]">{item.label}</p>
+                    <p className="text-[#A5AFC4] break-all">{item.value}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-[#6B7280]">Account Name</p>
-                    <p className="text-[#A5AFC4]">{selectedWithdrawal.accountName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-[#6B7280]">Account Number</p>
-                    <p className="text-[#A5AFC4]">{selectedWithdrawal.accountNumber}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-[#6B7280]">Withdrawal Token</p>
-                    <p className="text-[#A5AFC4]">{selectedWithdrawal.withdrawalToken}</p>
-                  </div>
+                ))}
+                <div>
+                  <p className="text-sm text-[#6B7280]">Withdrawal Token</p>
+                  <p className="text-[#A5AFC4]">{selectedWithdrawal.withdrawalToken}</p>
                 </div>
+              </div>
                 <div>
                   <p className="text-sm text-[#6B7280]">Upload Receipt</p>
                   <input

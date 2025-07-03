@@ -8,7 +8,7 @@ import {
   Search, Clock, AlertCircle, Mail, Eye, FileText, Loader2
 } from 'lucide-react';
 
-const Messaging = () => {
+const Messaging = ({ userId }) => {
   const { token } = useAuth();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,16 +34,21 @@ const Messaging = () => {
           params.search = searchTerm.trim();
         }
         
-        const response = await axios.get(`${API_BASE_URL}/messages`, {
+        
+
+        // ✅ CORRECT WAY
+        const response = await axios.get(`${API_BASE_URL}/messages/sent`, {
           params,
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
         
-        
+
+
         setMessages(response.data.data);
-        setTotalMessages(response.data.pagination.total);
+        setTotalMessages(response.data.data.length);
+
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch messages');
       } finally {

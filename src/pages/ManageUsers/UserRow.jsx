@@ -1,21 +1,65 @@
 import { Edit, MessageSquare, Eye } from 'lucide-react';
 import { useState } from 'react';
+import axios from 'axios';
+import { API_BASE_URL } from '../../api/config';
+import { useAuth } from '../../context/AuthContext';
 
-const UserRow = ({ 
-  user, 
-  expandedUser, 
+const UserRow = ({
+  user,
+  expandedUser,
   toggleUserExpansion,
   isSelected,
-  toggleSelection,
+  toggleSelection
 }) => {
+  const { token } = useAuth();
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [messageContent, setMessageContent] = useState('');
+  const [messageSubject, setMessageSubject] = useState('');
+  const [sendEmail, setSendEmail] = useState(false); // ✅ toggle state
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleSendMessage = () => {
-    alert(`Message sent to ${user.email}: "${messageContent}"`);
-    setMessageContent('');
-    setShowMessageDialog(false);
+
+  const handleSendMessage = async () => {
+    if (!messageContent.trim()) return;
+
+    setLoading(true);
+    try {
+      await axios.post(`${API_BASE_URL}/admin/users/${user._id}/send-message`, {
+        subject: messageSubject || 'Message from Support Team',
+        message: messageContent,
+        sendEmail: sendEmail // ✅ Send this to backend
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      setSuccessMessage(
+        sendEmail 
+          ? `Email sent to ${user.email} successfully.` 
+          : `Message sent to ${user.fullName} successfully.`
+      );
+      
+      // Clear input
+      setMessageContent('');
+      setSendEmail(false);
+      setMessageSubject('');
+      
+      // Close the modal *after a short delay*
+      setTimeout(() => {
+        setShowMessageDialog(false);
+        setSuccessMessage(''); // optionally clear after close
+      }, 2500);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Failed to send message');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  
 
   return (
     <>
@@ -97,12 +141,22 @@ const UserRow = ({
                   <h3 className="text-lg font-medium text-[#aab8c5]">
                     Send Message to {user.fullName}
                   </h3>
-                  <button 
+                  <button
                     onClick={() => setShowMessageDialog(false)}
                     className="text-[#6B7280] hover:text-[#A5AFC4]"
                   >
                     ✕
                   </button>
+                </div>
+                <div>
+                <input
+                    type="text"
+                    value={messageSubject}
+                    onChange={(e) => setMessageSubject(e.target.value)}
+                    placeholder="Enter subject"
+                    className="w-full bg-[#303943] text-[#A5AFC4] p-3 rounded-lg mb-3"
+                    required
+                  />
                 </div>
                 <textarea
                   value={messageContent}
@@ -110,6 +164,25 @@ const UserRow = ({
                   placeholder="Type your message here..."
                   className="w-full bg-[#303943] text-[#A5AFC4] p-3 rounded-lg mb-3 min-h-[100px]"
                 />
+                {successMessage && (
+  <div className="bg-green-100 text-green-800 px-4 py-2 rounded-md mb-3 text-sm flex justify-between items-center">
+    <span>{successMessage}</span>
+    <button onClick={() => setSuccessMessage('')} className="text-green-700 hover:text-green-900">✕</button>
+  </div>
+)}
+
+                <div className="flex items-center mb-3 space-x-2">
+                  <input
+                    type="checkbox"
+                    id={`sendEmail-${user._id}`}
+                    checked={sendEmail}
+                    onChange={(e) => setSendEmail(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor={`sendEmail-${user._id}`} className="text-sm text-[#A5AFC4]">
+                    Also send as email
+                  </label>
+                </div>
                 <div className="flex justify-end space-x-2">
                   <button
                     onClick={() => setShowMessageDialog(false)}
@@ -119,10 +192,10 @@ const UserRow = ({
                   </button>
                   <button
                     onClick={handleSendMessage}
-                    disabled={!messageContent.trim()}
+                    disabled={!messageContent.trim() || loading}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   >
-                    Send Message
+                    {loading ? 'Sending...' : 'Send Message'}
                   </button>
                 </div>
               </div>

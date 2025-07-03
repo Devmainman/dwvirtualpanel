@@ -14,13 +14,30 @@ import EditableField from './EditableField';
 import PopupFormModal from './PopupModals/PopupFormModal';
 import PopupInvoiceModal from './PopupModals/PopupInvoiceModal';
 import PopupMessageModal from './PopupModals/PopupMessageModal';
+import ResetPasswordModal from './PopupModals/ResetPasswordModal'; // NEW
+import ChangeCurrencyModal from './PopupModals/ChangeCurrencyModal';
+import SignalUpdateModal from './PopupModals/SignalUpdateModal';
+import FeedbackModal from './PopupModals/FeedbackModal';
+import BlockUserModal from './PopupModals/BlockUserModal';
+
+
 
 const ExpandedUser = ({ user, toggleUserExpansion, onUpgradeUser }) => {
+  const [currencies, setCurrencies] = useState([]);
+  const encodedUserId = encodeURIComponent(user._id);
   const { token } = useAuth();
   const [editMode, setEditMode] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false); // NEW
+  const [showChangeCurrencyModal, setShowChangeCurrencyModal] = useState(false);
+  const [showSignalModal, setShowSignalModal] = useState(false);
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [userStatus, setUserStatus] = useState(user.status); // NEW
+
+
+
   const [availableForms, setAvailableForms] = useState([]);
   const [availableInvoices, setAvailableInvoices] = useState([]);
   const [availableMessages, setAvailableMessages] = useState([]);
@@ -30,16 +47,42 @@ const ExpandedUser = ({ user, toggleUserExpansion, onUpgradeUser }) => {
     email: user.email || '',
     phoneNumber: user.mobile || user.phoneNumber || '',
     country: user.country || '',
-    currency: user.currency || 'USD',
+    currency: user.currency || '',
     accountId: user.accountId || '',
     accountType: user.accountType || 'Basic',
-    walletBalance: user.balance || 0,
+    walletBalance: user.balance !== undefined ? user.balance : user.walletBalance || 0,
   });
   const [actionState, setActionState] = useState({
     resetPassword: false,
     creditAmount: '',
     debitAmount: ''
   });
+  const [modalData, setModalData] = useState({ isOpen: false, title: '', message: '' });
+
+const showModal = (title, message) => {
+  setModalData({ isOpen: true, title, message });
+};
+
+const closeModal = () => {
+  setModalData({ ...modalData, isOpen: false });
+};
+
+
+  useEffect(() => {
+    const fetchCurrencies = async () => {
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/admin/currencies?status=Enabled&limit=151`, // Add limit parameter
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setCurrencies(response.data.currencies || []);
+      } catch (error) {
+        console.error('Failed to fetch currencies', error);
+      }
+    };
+    
+    fetchCurrencies();
+  }, [token]);
 
   const handleUpdateUser = async (updates) => {
     try {
@@ -62,75 +105,125 @@ const ExpandedUser = ({ user, toggleUserExpansion, onUpgradeUser }) => {
     }    
   };
 
-  const handleBlockUser = async () => {
+  const handleBlockUser = async (reason = null) => {
     try {
       const newStatus = user.status === 'Active' ? 'Inactive' : 'Active';
-      await handleUpdateUser({ status: newStatus });
-      toggleUserExpansion(user._id);
-      alert(`User ${newStatus === 'Active' ? 'unblocked' : 'blocked'} successfully`);
+      const payload = reason ? { reason } : {}; // only send reason if blocking
+  
+      const response = await axios.patch(
+        `${API_BASE_URL}/admin/users/${user._id}/status`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+  
+      if (response.data.success) {
+        const updatedUser = response.data.user;
+        setUserStatus(updatedUser.status);
+        setEditedUser((prev) => ({
+          ...prev,
+          status: updatedUser.status,
+          blockReason: updatedUser.blockReason || '',
+        }));
+  
+        showModal('Success', `User ${updatedUser.status === 'Inactive' ? 'blocked' : 'unblocked'} successfully`);
+        toggleUserExpansion(user._id); // optional if you want UI refresh
+      } else {
+        showModal('Error', response.data.message || 'Failed to update user');
+      }
     } catch (error) {
-      alert('Failed to update user status');
+      console.error('Block/unblock failed:', error.response?.data || error.message);
+      showModal('Error', 'Failed to update user status');
     }
   };
+  
+  
+  
 
-  const handleResetPassword = async () => {
-    setActionState(prev => ({ ...prev, resetPassword: true }));
+  const handleResetPassword = async (newPassword) => {
     try {
-      await axios.post(
+      const response = await axios.post(
         `${API_BASE_URL}/admin/users/${user._id}/reset-password`,
-        {},
+        { newPassword, confirmPassword: newPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert(`Password reset link sent to ${user.email}`);
+      
+      if (response.status === 200) {
+        setShowResetPasswordModal(false);
+        return true;
+      }
+      return response.data.message || 'Password reset failed';
     } catch (error) {
-      alert('Failed to reset password');
-    } finally {
-      setActionState(prev => ({ ...prev, resetPassword: false }));
+      console.error('Reset password error:', error.response?.data || error.message);
+      return error.response?.data?.message || 'Failed to reset password';
     }
   };
+  
 
-  const handleFinancialAction = async (type) => {
-    const amount = parseFloat(type === 'credit' ? actionState.creditAmount : actionState.debitAmount);
-    if (isNaN(amount) || amount <= 0) {
-      alert('Please enter a valid amount');
-      return;
+// Update the handleFinancialAction function
+const handleFinancialAction = async (type) => {
+  const amount = parseFloat(type === 'credit' ? actionState.creditAmount : actionState.debitAmount);
+  if (isNaN(amount) || amount <= 0) {
+    alert('Please enter a valid amount');
+    return;
+  }
+  
+  try {
+    const response = await axios.patch(
+      `${API_BASE_URL}/admin/users/${user._id}/wallet`,
+      { amount, type, notes: `${type === 'credit' ? 'Credit' : 'Debit'} adjustment by admin` },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    
+    // USE BACKEND RESPONSE DIRECTLY
+    if (response.data.success) {
+      setActionState({ creditAmount: '', debitAmount: '' });
+      
+      // Update ALL user data from backend
+      setEditedUser({
+        ...response.data.user,
+        phoneNumber: response.data.user.mobile || response.data.user.phoneNumber,
+        walletBalance: response.data.user.balance // Use actual balance field
+      });
+      
+      alert(`${type === 'credit' ? 'Credited' : 'Debited'} ${amount} ${response.data.user.currency} successfully`);
     }
-    try {
-      await axios.patch(
-        `${API_BASE_URL}/admin/users/${user._id}/wallet`,
-        { amount, type, notes: `${type === 'credit' ? 'Credit' : 'Debit'} adjustment by admin` },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setActionState(prev => ({ ...prev, creditAmount: '', debitAmount: '' }));
-      setEditedUser(prev => ({
-        ...prev,
-        walletBalance: type === 'credit' ? prev.walletBalance + amount : prev.walletBalance - amount
-      }));
-      alert(`${type === 'credit' ? 'Credited' : 'Debited'} ${amount} ${user.currency} successfully`);
-    } catch (error) {
-      alert(error.response?.data?.message || 'Failed to process transaction');
-    }
-  };
+  } catch (error) {
+    alert(error.response?.data?.message || 'Failed to process transaction');
+  }
+};
 
-  const handleSaveChanges = async () => {
-    try {
-      const updates = {
-        firstName: editedUser.firstName,
-        lastName: editedUser.lastName,
-        email: editedUser.email,
-        mobile: editedUser.phoneNumber?.replace(/\D/g, '') || '',
-        country: editedUser.country,
-        currency: editedUser.currency,
-        balance: editedUser.walletBalance
-      };
-      const updatedUser = await handleUpdateUser(updates);
-      setEditedUser(prev => ({ ...prev, ...updatedUser, phoneNumber: updatedUser.mobile }));
+// Update the handleSaveChanges function
+const handleSaveChanges = async () => {
+  try {
+    const updates = {
+      ...user,
+      ...editedUser,
+      mobile: editedUser.phoneNumber?.replace(/\D/g, '') || ''
+    };
+
+    delete updates.phoneNumber;
+
+    const response = await axios.patch(
+      `${API_BASE_URL}/admin/users/${user._id}`,
+      updates,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (response.data.success) {
+      setEditedUser({
+        ...response.data.user,
+        phoneNumber: response.data.user.mobile,
+        walletBalance: response.data.user.balance
+      });
+
       setEditMode(false);
       alert('User updated successfully');
-    } catch (error) {
-      alert('Failed to update user');
     }
-  };
+  } catch (error) {
+    alert('Failed to update user');
+  }
+};
+
 
   const handleClearAccount = async () => {
     if (!confirm('Clear all funds from this account?')) return;
@@ -147,113 +240,75 @@ const ExpandedUser = ({ user, toggleUserExpansion, onUpgradeUser }) => {
     }
   };
 
-const handleAssignPopupForm = async () => {
-  if (!token) {
-    alert('Authentication token missing');
-    return;
-  }
-  try {
-    const response = await axios.get(
-      `${API_BASE_URL}/admin/popup-forms?status=Active`,
-      { headers: { Authorization: `Bearer ${token}` } } // Config as second parameter
-    );
-    setAvailableForms(response.data.forms || []);
-    setShowFormModal(true);
-  } catch (error) {
-    alert('Failed to fetch forms: ' + (error.response?.data?.message || error.message));
-  }
+
+  const fetchPopupItems = async (endpoint, setter, showModal) => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/${endpoint}`,  // Use raw endpoint string, don't encode full URL
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = response.data;
+      setter(data.forms || data.invoices || data.messages || []);
+      showModal(true);
+    } catch (error) {
+      alert(`Failed to fetch items: ${error.response?.data?.message || error.message}`);
+    }
+  };
+  
+ // ADD THE MISSING HANDLERS HERE:
+ const handleAssignPopupForm = async () => {
+  await fetchPopupItems('admin/popup-forms?status=Active', setAvailableForms, setShowFormModal);
 };
 
-// Corrected assignment methods
+const handleAssignPopupInvoice = async () => {
+  await fetchPopupItems('admin/popup-invoices?status=Active', setAvailableInvoices, setShowInvoiceModal);
+};
+
+const handleAssignPopupMessage = async () => {
+  await fetchPopupItems('admin/popup-messages?status=Active', setAvailableMessages, setShowMessageModal);
+};
+
 const handleFormSelect = async (form) => {
-  if (!token) {
-    alert('Authentication token missing');
-    return;
-  }
   try {
     await axios.post(
       `${API_BASE_URL}/admin/assign/${user._id}/popup-forms/${form._id}`,
       {},
       { headers: { Authorization: `Bearer ${token}` } }
     );
+    alert(`Form "${form.title}" assigned successfully!`);
     setShowFormModal(false);
-    alert('Popup form assigned successfully');
   } catch (error) {
-    console.error('Assign form failed:', error);
-    alert('Failed to assign popup form');
-  }
-};
-
-// Apply same fix to handleInvoiceSelect and handleMessageSelect
-const handleAssignPopupInvoice = async () => {
-  if (!token) {
-    alert('Authentication token missing');
-    return;
-  }
-  try {
-    const response = await axios.get(`${API_BASE_URL}/admin/popup-invoices?status=Active`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    setAvailableInvoices(response.data.invoices || []);
-    setShowInvoiceModal(true);
-  } catch (error) {
-    alert('Failed to fetch invoices: ' + (error.response?.data?.message || error.message));
+    alert(`Failed to assign form: ${error.response?.data?.message || error.message}`);
   }
 };
 
 const handleInvoiceSelect = async (invoice) => {
-  if (!token) {
-    alert('Authentication token missing');
-    return;
-  }
   try {
     await axios.post(
       `${API_BASE_URL}/admin/assign/${user._id}/popup-invoices/${invoice._id}`,
       {},
       { headers: { Authorization: `Bearer ${token}` } }
     );
+    alert(`Invoice "${invoice.title}" assigned successfully!`);
     setShowInvoiceModal(false);
-    alert('Popup invoice assigned successfully');
   } catch (error) {
-    console.error('Assign invoice failed:', error);
-    alert('Failed to assign popup invoice');
+    alert(`Failed to assign invoice: ${error.response?.data?.message || error.message}`);
   }
 };
 
-  const handleAssignPopupMessage = async () => {
-    if (!token) {
-      alert('Authentication token missing');
-      return;
-    }
-    try {
-      const response = await axios.get(`${API_BASE_URL}/admin/popup-messages?status=Active`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setAvailableMessages(response.data.messages || []);
-      setShowMessageModal(true);
-    } catch (error) {
-      alert('Failed to fetch messages: ' + (error.response?.data?.message || error.message));
-    }
-  };
-
-  const handleMessageSelect = async (message) => {
-    if (!token) {
-      alert('Authentication token missing');
-      return;
-    }
-    try {
-      await axios.post(
-        `${API_BASE_URL}/admin/assign/${user._id}/popup-messages/${message._id}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setShowMessageModal(false);
-      alert('Popup message assigned successfully');
-    } catch (error) {
-      console.error('Assign message failed:', error);
-      alert('Failed to assign popup message');
-    }
-  };
+const handleMessageSelect = async (message) => {
+  try {
+    await axios.post(
+      `${API_BASE_URL}/admin/assign/${user._id}/popup-messages/${message._id}`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    alert(`Message "${message.title}" assigned successfully!`);
+    setShowMessageModal(false);
+  } catch (error) {
+    alert(`Failed to assign message: ${error.response?.data?.message || error.message}`);
+  }
+};
 
   const handleToggleWithdrawalLock = async () => {
     try {
@@ -294,42 +349,111 @@ const handleInvoiceSelect = async (invoice) => {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Email verification requested successfully');
+      showModal('Success', 'Email verification requested successfully');
     } catch (error) {
-      alert('Failed to request email verification');
+      showModal('Error', 'Failed to request email verification');
     }
   };
+  
 
   const handleRequestPhoneVerification = async () => {
     try {
+      const rawInput = editedUser.phoneNumber || user.mobile || '';
+      const cleaned = rawInput.trim().replace(/\s/g, '');
+  
+      const mobile = cleaned.startsWith('+')
+        ? cleaned
+        : '+' + cleaned.replace(/\D/g, '');
+  
+      if (!/^\+[1-9]\d{1,14}$/.test(mobile)) {
+        return showModal('Invalid Number', 'Please provide a valid international phone number');
+      }
+  
       const { data } = await axios.post(
         `${API_BASE_URL}/admin/users/${user._id}/request-phone-verification`,
+        { mobile },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+  
+      if (process.env.NODE_ENV === 'development') {
+        showModal('Verification Code', `Code: ${data.verificationCode}`);
+      } else {
+        showModal('Success', 'Phone verification requested successfully');
+      }
+    } catch (error) {
+      console.error('Phone verification request failed:', error.response?.data || error.message);
+      showModal('Error', 'Failed to request phone verification');
+    }
+  };
+  
+  
+  
+  const handleVerifyEmail = async () => {
+    try {
+      await axios.post(
+        `${API_BASE_URL}/admin/users/${user._id}/verify-email`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (process.env.NODE_ENV === 'development') {
-        alert(`Verification code: ${data.verificationCode}`);
-      } else {
-        alert('Phone verification requested successfully');
-      }
+      showModal('Success', 'Email marked as verified successfully');
     } catch (error) {
-      alert('Failed to request phone verification');
+      showModal('Error', 'Failed to verify email');
     }
   };
-
-  const handleChangeCurrency = async () => {
-    const newCurrency = prompt('Enter new currency (USD, EUR, GBP, etc.):', user.currency);
-    if (!newCurrency) return;
+  
+  
+  const handleVerifyPhoneNumber = async () => {
     try {
-      await axios.patch(
-        `${API_BASE_URL}/admin/users/${user._id}/currency`,
-        { currency: newCurrency },
+      await axios.post(
+        `${API_BASE_URL}/admin/users/${user._id}/verify-phone-number`,
+        {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Currency changed successfully');
-      toggleUserExpansion(user._id);
+      showModal('Success', 'Phone number marked as verified successfully');
     } catch (error) {
-      alert('Failed to change currency');
+      console.error('Phone number verify failed:', error.response?.data || error.message);
+      showModal('Error', 'Failed to verify phone number');
+    }
+  };
+  
+  
+  
+
+
+
+  const handleChangeCurrency = async (newCurrency) => {
+    try {
+      console.log('Changing currency to:', newCurrency);
+      console.log('User ID:', user._id);
+      
+      const response = await axios.patch(
+        `${API_BASE_URL}/admin/users/${user._id}/currency`,
+        { currency: newCurrency },
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }
+      );
+      
+      if (response.status === 200) {
+        setShowChangeCurrencyModal(false);
+        toggleUserExpansion(user._id);
+        return true;
+      }
+      return response.data.message || 'Currency change failed';
+    } catch (error) {
+      console.error('Currency change error:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+        config: error.config
+      });
+      
+      return error.response?.data?.message || 
+             error.response?.data?.error || 
+             'Failed to change currency';
     }
   };
 
@@ -381,23 +505,23 @@ const handleInvoiceSelect = async (invoice) => {
     }
   };
 
-  const handleUpdateSignal = async () => {
-    const signal = prompt('Enter new signal (buy/sell/hold):', 'hold');
-    if (!signal || !['buy', 'sell', 'hold'].includes(signal)) {
-      alert('Invalid signal. Must be buy, sell, or hold.');
-      return;
-    }
+  const handleUpdateSignal = async (value) => {
     try {
       await axios.patch(
         `${API_BASE_URL}/admin/users/${user._id}/signal`,
-        { signal },
+        { strength: value },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Signal updated successfully');
+      alert("Signal strength updated successfully");
+      setShowSignalModal(false);
+      toggleUserExpansion(user._id); // Refresh UI
     } catch (error) {
-      alert('Failed to update signal');
+      alert('Failed to update signal strength');
+      console.error(error.response?.data || error.message);
     }
   };
+  
+  
 
   const handleSendMessage = async () => {
     const subject = prompt('Enter message subject:');
@@ -443,7 +567,7 @@ const handleInvoiceSelect = async (invoice) => {
                           email: user.email || '',
                           phoneNumber: user.mobile || '',
                           country: user.country || '',
-                          currency: user.currency || 'USD',
+                          currency: user.currency || '',
                           accountId: user.accountId || '',
                           accountType: user.accountType || 'Basic',
                           walletBalance: user.walletBalance || 0,
@@ -491,18 +615,27 @@ const handleInvoiceSelect = async (invoice) => {
               <div className="mb-4">
                 <h4 className="text-xs md:text-sm font-medium text-[#6B7280] mb-2">Security</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3 mb-4">
-                  <ActionButton icon={Lock} label={user.status === 'Active' ? 'Block User' : 'Unblock User'} color="red" onClick={handleBlockUser} />
-                  <ActionButton icon={Key} label="Reset Password" color="yellow" onClick={handleResetPassword} disabled={actionState.resetPassword} />
+                  <ActionButton icon={Lock} label={user.status === 'Active' ? 'Block User' : 'Unblock User'} color="red"  
+                   onClick={() => {
+                    if (userStatus === 'Active') {
+                      setShowBlockModal(true);
+                    } else {
+                      handleBlockUser();
+                    }
+                  }} />
+                  <ActionButton icon={Key} label="Reset Password" color="yellow"  onClick={() => setShowResetPasswordModal(true)}  disabled={actionState.resetPassword} />
                   <ActionButton icon={Lock} label={user.withdrawalLocked ? 'Unlock Withdrawal' : 'Lock Withdrawal'} color="red" onClick={handleToggleWithdrawalLock} />
                   <ActionButton icon={Lock} label="Gain Access" color="blue" onClick={handleGainAdminAccess} />
                   <ActionButton icon={Mail} label="Request Email Verification" color="red" onClick={handleRequestEmailVerification} />
                   <ActionButton icon={Phone} label="Request Number Verification" color="yellow" onClick={handleRequestPhoneVerification} />
+                  <ActionButton icon={Check} label="Verify Email" color="green" onClick={handleVerifyEmail} />
+                  <ActionButton icon={Check} label="Verify Phone" color="green" onClick={handleVerifyPhoneNumber} />
                 </div>
                 <h4 className="text-xs md:text-sm font-medium text-[#6B7280] mb-2">Account</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3 mb-4">
                   <ActionButton icon={User} label="Change Type" color="blue" onClick={() => onUpgradeUser(user._id)} />
                   <ActionButton icon={Edit} label="Edit User" color="blue" onClick={() => setEditMode(true)} />
-                  <ActionButton icon={RefreshCw} label="Change Currency" color="yellow" onClick={handleChangeCurrency} />
+                  <ActionButton icon={RefreshCw} label="Change Currency" color="yellow"  onClick={() => setShowChangeCurrencyModal(true)}  />
                   <ActionButton icon={MessageSquare} label="Message" color="blue" onClick={handleSendMessage} />
                   <ActionButton icon={Trash2} label="Delete User" color="red" onClick={handleDeleteUser} />
                   <ActionButton icon={ArrowUp} label="Upgrade Account" color="green" onClick={() => onUpgradeUser(user._id)} />
@@ -546,7 +679,8 @@ const handleInvoiceSelect = async (invoice) => {
                   <ActionButton icon={Trash2} label="Clear Account" color="red" onClick={handleClearAccount} />
                   <ActionButton icon={RefreshCw} label={user?.tradingEnabled ? 'Turn Off Trade' : 'Turn On Trade'} color="yellow" onClick={handleToggleTradeStatus} />
                   <ActionButton icon={FileText} label="Assign Form" color="blue" onClick={handleAssignPopupForm} />
-                  <ActionButton icon={ArrowUp} label="Update Signal" color="green" onClick={handleUpdateSignal} />
+                  <ActionButton icon={ArrowUp} label="Update Signal" color="green" onClick={() => setShowSignalModal(true)} />
+
                   <ActionButton icon={MessageSquare} label="Assign Message" color="green" onClick={handleAssignPopupMessage} />
                 </div>
               </div>
@@ -573,6 +707,50 @@ const handleInvoiceSelect = async (invoice) => {
               onClose={() => setShowMessageModal(false)}
             />
           )}
+          {showResetPasswordModal && (
+            <ResetPasswordModal
+              isOpen={showResetPasswordModal}
+              onClose={() => setShowResetPasswordModal(false)}
+              onReset={handleResetPassword}
+            />
+          )}
+          
+          {showChangeCurrencyModal && (
+            <ChangeCurrencyModal
+              isOpen={showChangeCurrencyModal}
+              onClose={() => setShowChangeCurrencyModal(false)}
+              currencies={currencies}
+              currentCurrency={user.currency}
+              onChange={handleChangeCurrency}
+            />
+          )}
+          {showSignalModal && (
+            <SignalUpdateModal
+              isOpen={showSignalModal}
+              onClose={() => setShowSignalModal(false)}
+              onSubmit={handleUpdateSignal}
+              currentSignal={user.tradingSignalStrength}
+            />
+          )}
+          <FeedbackModal
+            isOpen={modalData.isOpen}
+            onClose={closeModal}
+            title={modalData.title}
+            message={modalData.message}
+          />
+          {showBlockModal && (
+            <BlockUserModal
+              isOpen={showBlockModal}
+              onClose={() => setShowBlockModal(false)}
+              onConfirm={(reason) => {
+                setShowBlockModal(false);
+                handleBlockUser(reason);
+              }}
+            />
+          )}
+
+
+
         </div>
       </td>
     </tr>
