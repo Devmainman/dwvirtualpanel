@@ -310,7 +310,7 @@ export default function BrowsingHistory() {
                   <div className="md:col-span-2">
                     <div className="text-xs text-[#6B7280]">Date</div>
                     <div className="text-[#A5AFC4]">
-                      <span className="md:hidden">{formatDateString(visit)}</span>
+                    <span className="md:hidden">{formatDateMobile(visit.date)}</span>
                       <span className="hidden md:block">{visit.date.toLocaleDateString()}</span>
                     </div>
                   </div>

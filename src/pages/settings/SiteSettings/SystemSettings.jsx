@@ -201,7 +201,7 @@ const SystemSettings = ({ settings, handleInputChange, handleSave }) => {
               Comple Status
             </label>
           </div>
-          <div className="flex items-center">
+          {/* <div className="flex items-center">
             <button
               type="button"
               onClick={() => handleToggle('referralStatus')}
@@ -214,7 +214,7 @@ const SystemSettings = ({ settings, handleInputChange, handleSave }) => {
             <label className="ml-2 block text-sm text-[#A5AFC4]">
               Referral Status
             </label>
-          </div>
+          </div> */}
         </div>
       </SettingCard>
 

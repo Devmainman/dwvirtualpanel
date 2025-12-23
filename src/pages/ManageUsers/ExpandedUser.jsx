@@ -19,6 +19,8 @@ import ChangeCurrencyModal from './PopupModals/ChangeCurrencyModal';
 import SignalUpdateModal from './PopupModals/SignalUpdateModal';
 import FeedbackModal from './PopupModals/FeedbackModal';
 import BlockUserModal from './PopupModals/BlockUserModal';
+import EditUserPackageModal from './EditUserPackageModal';
+import PackageSelectionPopup from './PackageSelectionPopup';
 
 
 
@@ -35,6 +37,13 @@ const ExpandedUser = ({ user, toggleUserExpansion, onUpgradeUser }) => {
   const [showSignalModal, setShowSignalModal] = useState(false);
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [userStatus, setUserStatus] = useState(user.status); // NEW
+  const [showPackageSelector, setShowPackageSelector] = useState(false);
+  const [packageSelectMode, setPackageSelectMode] = useState('edit');
+  const [availablePackages, setAvailablePackages] = useState([]);
+  
+
+
+  console.log("User online status:", user.isOnline);
 
 
 
@@ -66,6 +75,34 @@ const showModal = (title, message) => {
 const closeModal = () => {
   setModalData({ ...modalData, isOpen: false });
 };
+
+const openEditPackageSelector = async () => {
+  try {
+    const { data } = await axios.get(`${API_BASE_URL}/packages?status=Active`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    setAvailablePackages(data.packages || []);
+    setPackageSelectMode('edit');
+    setShowPackageSelector(true);
+  } catch (err) {
+    alert('Failed to load packages');
+  }
+};
+
+const openUpgradePackageSelector = async () => {
+  try {
+    const { data } = await axios.get(`${API_BASE_URL}/packages?status=Active`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    setAvailablePackages(data.packages || []);
+    setPackageSelectMode('upgrade');
+    setShowPackageSelector(true);
+  } catch (err) {
+    alert('Failed to load packages');
+  }
+};
+
+
 
 
   useEffect(() => {
@@ -104,6 +141,71 @@ const closeModal = () => {
       throw error;
     }    
   };
+
+  const handleSaveUserPackage = async (packageId) => {
+    try {
+      await axios.patch(
+        `${API_BASE_URL}/admin/users/${user._id}/account-package`,
+        { packageId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert('User package updated successfully');
+      setShowPackageModal(false);
+      toggleUserExpansion(user._id); // Optional UI refresh
+    } catch (error) {
+      alert('Failed to update package');
+    }
+  };
+
+  const handleSelectPackage = async (pkg) => {
+    try {
+      console.log('Assigning package:', {
+        mode: packageSelectMode,
+        userId: user?._id,
+        packageId: pkg?._id,
+        token
+      });
+      
+      const endpoint =
+        packageSelectMode === 'upgrade'
+          ? `${API_BASE_URL}/admin/users/${user._id}/packages/${pkg._id}`
+          : `${API_BASE_URL}/admin/users/${user._id}/edit-package`;
+  
+      const method = packageSelectMode === 'upgrade' ? 'post' : 'patch';
+  
+      const res = await axios[method](endpoint, 
+        packageSelectMode === 'edit' ? { packageId: pkg._id } : {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+  
+      alert(`${pkg.name} ${packageSelectMode === 'upgrade' ? 'assigned' : 'updated'} successfully`);
+      toggleUserExpansion(user._id);
+      setShowPackageSelector(false);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to assign package');
+    }
+  };
+
+  const handleUnassignPackage = async () => {
+  try {
+    await axios.delete(
+      `${API_BASE_URL}/admin/users/${user._id}/unassign-package`,
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+    alert('Package unassigned successfully');
+    toggleUserExpansion(user._id); // Refresh user row
+  } catch (error) {
+    console.error('Unassign package error:', error.response?.data || error.message);
+    alert('Failed to unassign package');
+  }
+};
+
+
+  
+  
+  
 
   const handleBlockUser = async (reason = null) => {
     try {
@@ -549,7 +651,11 @@ const handleMessageSelect = async (message) => {
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium text-[#aab8c5] flex items-center">
                   <User className="h-5 w-5 mr-2 text-blue-500" />
-                  Account Details
+                  <span className="mr-2">Account Details</span>
+                  <div className="flex items-center gap-2">
+                  <div className={`h-2 w-2 rounded-full ${user.isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
+                  <span className="text-sm text-white">{user.isOnline ? 'Online' : 'Offline'}</span>
+                </div>
                 </h3>
                 {editMode ? (
                   <div className="flex space-x-2">
@@ -633,12 +739,26 @@ const handleMessageSelect = async (message) => {
                 </div>
                 <h4 className="text-xs md:text-sm font-medium text-[#6B7280] mb-2">Account</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 md:gap-3 mb-4">
-                  <ActionButton icon={User} label="Change Type" color="blue" onClick={() => onUpgradeUser(user._id)} />
+                <ActionButton icon={Edit} label="Edit Account Package" color="blue" onClick={openEditPackageSelector} />
                   <ActionButton icon={Edit} label="Edit User" color="blue" onClick={() => setEditMode(true)} />
                   <ActionButton icon={RefreshCw} label="Change Currency" color="yellow"  onClick={() => setShowChangeCurrencyModal(true)}  />
-                  <ActionButton icon={MessageSquare} label="Message" color="blue" onClick={handleSendMessage} />
+                  {/* <ActionButton icon={MessageSquare} label="Message" color="blue" onClick={handleSendMessage} /> */}
                   <ActionButton icon={Trash2} label="Delete User" color="red" onClick={handleDeleteUser} />
-                  <ActionButton icon={ArrowUp} label="Upgrade Account" color="green" onClick={() => onUpgradeUser(user._id)} />
+                  <ActionButton
+                    icon={ArrowUp}
+                    label="Mandatory Upgrade"
+                    color="green"
+                    onClick={openUpgradePackageSelector}
+                  />
+
+                  <ActionButton
+                    icon={X}
+                    label="Unassign Package"
+                    color="red"
+                    onClick={handleUnassignPackage}
+                  />
+
+
                   <ActionButton icon={Bot} label="Assign Bot" color="blue" onClick={handleAssignBot} />
                 </div>
                 <h4 className="text-xs md:text-sm font-medium text-[#6B7280] mb-2">Financial</h4>
@@ -746,6 +866,16 @@ const handleMessageSelect = async (message) => {
                 setShowBlockModal(false);
                 handleBlockUser(reason);
               }}
+            />
+          )}
+
+          {showPackageSelector && (
+            <PackageSelectionPopup
+              packages={availablePackages}
+              mode={packageSelectMode}
+              currentPackageId={user.packageId} // for edit flow, pass current
+              onSelectPackage={handleSelectPackage}
+              onClose={() => setShowPackageSelector(false)}
             />
           )}
 

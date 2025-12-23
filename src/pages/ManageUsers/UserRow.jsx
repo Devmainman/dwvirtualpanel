@@ -9,7 +9,8 @@ const UserRow = ({
   expandedUser,
   toggleUserExpansion,
   isSelected,
-  toggleSelection
+  toggleSelection,
+  userOnlineStatus
 }) => {
   const { token } = useAuth();
   const [showMessageDialog, setShowMessageDialog] = useState(false);
@@ -86,13 +87,17 @@ const UserRow = ({
         <td className="px-4 md:px-6 py-3 whitespace-nowrap text-[#A5AFC4] font-mono text-sm md:text-base">{user.accountId}</td>
         <td className="px-4 md:px-6 py-3 whitespace-nowrap">
           <div className="font-medium text-[#A5AFC4] text-sm md:text-base">{user.fullName}</div>
-          <div className="text-xs text-[#6B7280]">{user.accountType} Account</div>
+          <div className="text-xs text-[#6B7280]">
+  {(typeof user.accountType === 'object' ? user.accountType.name : user.accountType) || 'Basic'} Account
+</div>
+
         </td>
         <td className="hidden sm:table-cell px-4 md:px-6 py-3 whitespace-nowrap text-[#A5AFC4] text-sm md:text-base">{user.email}</td>
         <td className="hidden md:table-cell px-6 py-3 whitespace-nowrap text-[#A5AFC4] text-sm md:text-base">{user.mobile}</td>
         <td className="hidden lg:table-cell px-6 py-3 whitespace-nowrap text-[#A5AFC4] text-sm md:text-base">{user.country}</td>
         <td className="px-4 md:px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
           <div className="flex items-center justify-end space-x-1 md:space-x-2">
+            
             <button 
               className={`p-1 rounded-md ${
                 expandedUser === user._id ? 'bg-blue-500 text-white' : 'bg-[#303943] text-blue-400'
@@ -127,6 +132,7 @@ const UserRow = ({
             >
               <Eye className="h-3 w-3 md:h-4 md:w-4" />
             </button>
+
           </div>
         </td>
       </tr>

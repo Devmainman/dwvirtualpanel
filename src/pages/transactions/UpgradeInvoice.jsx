@@ -263,7 +263,7 @@ export default function UpgradeInvoice() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#A5AFC4] uppercase tracking-wider">ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#A5AFC4] uppercase tracking-wider">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#A5AFC4] uppercase tracking-wider">Package</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#A5AFC4] uppercase tracking-wider">Account ID</th>
+                
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#A5AFC4] uppercase tracking-wider">Full Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#A5AFC4] uppercase tracking-wider">Payment Method</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#A5AFC4] uppercase tracking-wider">Amount</th>
@@ -306,11 +306,8 @@ export default function UpgradeInvoice() {
                     <td className="px-6 py-4 whitespace-nowrap text-[#A5AFC4]">
                       {invoice.package.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-[#A5AFC4] font-mono">
-                      {invoice.user.accountId}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-[#A5AFC4]">
-                      {invoice.user.fullName}
+                     {invoice.fullName || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-[#A5AFC4]">
                       {invoice.paymentMethod}

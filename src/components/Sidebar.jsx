@@ -4,7 +4,8 @@ import {
   X, Home, User, MessageSquare, Repeat, Package, 
   AlertCircle, FileText, DollarSign, Clipboard,
   LifeBuoy, Settings, ChevronDown, ChevronRight, 
-  CreditCard, CheckCircle, MapPin, UserCheck, History, Image, 
+  CreditCard, CheckCircle, MapPin, UserCheck, History, Image,
+  Cpu, Drill, Zap, Award, Users, BarChart, Copy,
 } from "lucide-react";
 
 const SidebarItem = ({ icon, text, to, hasChildren = false, expanded = false, onClick }) => {
@@ -279,6 +280,33 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
             text="Support" 
             to="/support"
           />
+
+          <SidebarItem 
+            icon={<Cpu size={16} />} 
+            text="Mining" 
+            to="/mining"
+            hasChildren={true}
+            expanded={isMenuExpanded("mining")}
+            onClick={() => toggleMenu("mining")}
+          />
+          {isMenuExpanded("mining") && (
+            <div className="ml-1 mt-1 pl-2 border-l border-gray-700">
+              <NestedItem text="Overview" to="/mining/overview" />
+              <NestedItem text="Pools" to="/mining/pools" />
+              <NestedItem text="Equipment" to="/mining/equipment" />
+              <NestedItem text="Sessions" to="/mining/sessions" />
+              <NestedItem text="Rewards" to="/mining/rewards" />
+              <NestedItem text="Boosters" to="/mining/boosters" />
+              <NestedItem text="Analytics" to="/mining/analytics" />
+              <NestedItem text="User Stats" to="/mining/user-stats" />
+            </div>
+          )}
+
+          <SidebarItem 
+  icon={<Copy size={16} />} 
+  text="Copy Trading" 
+  to="/copy-trading"
+/>
           
           <SidebarItem 
             icon={<Settings size={16} />} 
@@ -294,6 +322,8 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
               <NestedItem text="Withdrawal Settings" to="/settings/withdrawalsettings" />
               <NestedItem text="Currency Settings" to="/settings/currency" />
               <NestedItem text="Site Settings" to="/settings/sitesettings" />
+              <NestedItem text="Trading Mode" to="/settings/trading-mode" />
+
             </div>
           )}
         </nav>

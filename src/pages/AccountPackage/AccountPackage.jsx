@@ -169,7 +169,6 @@ const handleAddPackage = async () => {
     setNewPackage({
       name: '',
       icon: '',
-      currency: 'USD',
       amount: '',
       status: 'Active',
       benefits: [''],

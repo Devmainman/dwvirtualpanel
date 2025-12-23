@@ -1,6 +1,7 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
 import Dashboard from './pages/Dashboard';
 import ManageUsers from './pages/ManageUsers/ManageUsers';
 import IdVerification from './pages/verification/IdVerification';
@@ -13,7 +14,7 @@ import NftStore from './pages/nfttrading/NftStore';
 import ActiveTrades from './pages/trades/ActiveTrades';
 import TradeSettings from './pages/trades/TradeSettings';
 import CardSettings from './pages/cards/CardsSettings';
-import PurchasedCards from './pages/cards/PurchasedCard'
+import PurchasedCards from './pages/cards/PurchasedCard';
 import AccountsPackage from './pages/AccountPackage/AccountPackage';
 import PopupForm from './pages/popup/PopupForm';
 import PopupInvoice from './pages/popup/PopupInvoice';
@@ -32,10 +33,24 @@ import WithdrawalToken from './pages/WithdrawalToken';
 import Support from './pages/Support/Support';
 import LoginPage from './auth/LoginPage';
 
+import MiningOverview from './pages/mining/MiningOverview';
+import MiningPools from './pages/mining/MiningPools';
+import MiningEquipment from './pages/mining/MiningEquipment';
+import MiningSessions from './pages/mining/MiningSessions';
+import MiningRewards from './pages/mining/MiningRewards';
+import MiningBoosters from './pages/mining/MiningBoosters';
+import MiningAnalytics from './pages/mining/MiningAnalytics';
+import MiningUserStats from './pages/mining/MiningUserStats';
+
 import DepositSettings from './pages/settings/DepositSettings';
 import CurrenciesSettings from './pages/settings/CurrenciesSettings';
 import SiteSettings from './pages/settings/SiteSettings/SiteSettings';
 import WithdrawalSettings from './pages/settings/WithdrawalSettings';
+import TradingMode from './pages/settings/TradingMode';
+
+// ADD THIS IMPORT
+import Copytrading from './pages/copytrading/Copytrading';
+
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageNotFound from './components/PageNotFound';
@@ -46,66 +61,79 @@ function App() {
     <>
       <ToastContainer />
       <Routes>
-        {/* Public route - accessible without authentication */}
+        {/* Public route */}
         <Route path="/admin/login" element={<LoginPage />} />
-        
-        {/* All protected routes */}
+
+        {/* Protected routes */}
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="/" element={<Dashboard />} />
           <Route path="users" element={<ManageUsers />} />
-          
-          {/* Settings routes */}
+
+          {/* Settings */}
           <Route path="settings">
             <Route index element={<DepositSettings />} />
             <Route path="depositsettings" element={<DepositSettings />} />
             <Route path="currency" element={<CurrenciesSettings />} />
             <Route path="sitesettings" element={<SiteSettings />} />
             <Route path="withdrawalsettings" element={<WithdrawalSettings />} />
+            <Route path="trading-mode" element={<TradingMode />} />
           </Route>
 
-          {/* Verification routes */}
+          {/* ADD THIS NEW ROUTE */}
+          <Route path="copy-trading" element={<Copytrading />} />
+
+          <Route path="mining">
+            <Route index element={<MiningOverview />} />
+            <Route path="overview" element={<MiningOverview />} />
+            <Route path="pools" element={<MiningPools />} />
+            <Route path="equipment" element={<MiningEquipment />} />
+            <Route path="sessions" element={<MiningSessions />} />
+            <Route path="rewards" element={<MiningRewards />} />
+            <Route path="boosters" element={<MiningBoosters />} />
+            <Route path="analytics" element={<MiningAnalytics />} />
+            <Route path="user-stats" element={<MiningUserStats />} />
+          </Route>
+
+          {/* Verification */}
           <Route path="verification">
             <Route index element={<IdVerification />} />
             <Route path="id" element={<IdVerification />} />
             <Route path="facial" element={<FacialVerification />} />
             <Route path="address" element={<AddressVerification />} />
           </Route>
-            
+
+          {/* Other routes */}
           <Route path="messaging" element={<Messaging />} />
           <Route path="browsinghistory" element={<Browsinghistory />} />
-          
+
           <Route path="nfttrading">
             <Route index element={<NftStore />} />
             <Route path="nftStores" element={<NftStore />} />
             <Route path="nftSettings" element={<NftSetting />} />
           </Route>
 
-          {/* Trades routes */}
           <Route path="trades">
             <Route index element={<ActiveTrades />} />
             <Route path="active" element={<ActiveTrades />} />
             <Route path="settings" element={<TradeSettings />} />
           </Route>
 
-          {/* Cards routes */}
           <Route path="cards">
             <Route index element={<CardSettings />} />
             <Route path="cardssettings" element={<CardSettings />} />
             <Route path="purchasedcards" element={<PurchasedCards />} />
           </Route>
-          
+
           <Route path="accounts-package" element={<AccountsPackage />} />
-          
-          {/* Popup routes */}
+
           <Route path="popup">
             <Route index element={<PopupForm />} />
             <Route path="form" element={<PopupForm />} />
             <Route path="invoice" element={<PopupInvoice />} />
             <Route path="messages" element={<PopupMessages />} />
           </Route>
-          
-          {/* Transactions routes */}
+
           <Route path="transactions">
             <Route index element={<Deposit />} />
             <Route path="deposit" element={<Deposit />} />
@@ -116,27 +144,26 @@ function App() {
             <Route path="signal-invoice" element={<SignalInvoice />} />
             <Route path="card-invoice" element={<CardInvoice />} />
           </Route>
-          
-          {/* Assignments routes */}
+
           <Route path="assignments">
             <Route index element={<AssignmentsPopup />} />
             <Route path="popup" element={<AssignmentsPopup />} />
             <Route path="forms" element={<AssignmentsForms />} />
-            <Route 
-              path="invoice" 
+            <Route
+              path="invoice"
               element={
                 <ErrorBoundary>
                   <AssignmentsInvoice />
                 </ErrorBoundary>
-              } 
+              }
             />
           </Route>
-          
+
           <Route path="withdrawal-token" element={<WithdrawalToken />} />
           <Route path="support" element={<Support />} />
         </Route>
 
-        {/* 404 Page */}
+        {/* 404 */}
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

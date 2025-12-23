@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 
 const formatIntlPhone = (phone) => {
@@ -40,6 +40,39 @@ const EditableField = ({
   user,
 }) => {
   const inputRef = useRef(null);
+  const [countries, setCountries] = useState([]);
+
+  useEffect(() => {
+    if (fieldName === 'country') {
+      const fetchCountries = async () => {
+        try {
+          const res = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,idd');
+          const data = await res.json();
+
+          const countryList = data
+            .map((c) => ({
+              name: c.name?.common || 'Unknown',
+              code: c.cca2 || '',
+              dialCode:
+                c.idd?.root && c.idd?.suffixes?.length
+                  ? c.idd.root + c.idd.suffixes[0]
+                  : '',
+            }))
+            .filter((c) => c.name && c.code && c.dialCode);
+
+          // Sort alphabetically
+          setCountries(countryList.sort((a, b) => a.name.localeCompare(b.name)));
+        } catch (err) {
+          console.error('Failed to fetch countries:', err);
+        }
+      };
+
+      fetchCountries();
+    }
+  }, [fieldName]);
+
+
+
 
   useEffect(() => {
     if (editMode && inputRef.current) {
@@ -123,32 +156,41 @@ const EditableField = ({
   
 
 
-  if (fieldName === 'country') {
-    return (
-      <div>
-        <p className="text-xs md:text-sm text-[#6B7280] mb-1">{label}</p>
-        {editMode && !readOnly ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={editedUser.country || ''}
-            onChange={(e) =>
-              setEditedUser((prev) => ({
-                ...prev,
-                country: e.target.value,
-              }))
-            }
-            placeholder="Enter country"
-            className="text-[#A5AFC4] text-sm md:text-base bg-[#303943] px-2 md:px-3 py-1 md:py-2 rounded w-full"
-          />
-        ) : (
-          <p className="text-[#A5AFC4] text-sm md:text-base bg-[#303943] px-2 md:px-3 py-1 md:py-2 rounded">
-            {user.country || 'Not set'}
-          </p>
-        )}
-      </div>
-    );
-  }
+ // Inside EditableField.jsx (partial snippet)
+if (fieldName === 'country') {
+  return (
+    <div>
+      <p className="text-xs md:text-sm text-[#6B7280] mb-1">{label}</p>
+      {editMode && !readOnly ? (
+        <select
+          ref={inputRef}
+          value={editedUser.country || ''}
+          onChange={(e) =>
+            setEditedUser((prev) => ({
+              ...prev,
+              country: e.target.value,
+            }))
+          }
+          className="text-[#A5AFC4] text-sm md:text-base bg-[#303943] px-3 py-2 rounded w-full"
+        >
+          <option value="">Select Country</option>
+          {countries.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.name} ({c.dialCode})
+            </option>
+          ))}
+        </select>
+      ) : (
+        <p className="text-[#A5AFC4] text-sm md:text-base bg-[#303943] px-3 py-2 rounded">
+          {user.country || 'Not set'}
+        </p>
+      )}
+    </div>
+  );
+}
+
+
+
 
   return (
     <div>
@@ -175,7 +217,10 @@ const EditableField = ({
                 editedUser[fieldName] ?? user[fieldName] ?? 0,
                 editedUser.currency || user.currency
               )
-            : editedUser[fieldName] ?? user[fieldName] ?? 'Not set'}
+            : typeof (editedUser[fieldName] ?? user[fieldName]) === 'object'
+  ? (editedUser[fieldName]?.name || user[fieldName]?.name || 'Not set')
+  : (editedUser[fieldName] ?? user[fieldName] ?? 'Not set')
+}
         </p>
       )}
     </div>
