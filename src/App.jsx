@@ -163,7 +163,7 @@ function App() {
           <Route path="support" element={<Support />} />
         </Route>
 
-        {/* 404 */}
+       
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>
