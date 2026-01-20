@@ -216,6 +216,12 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
             text="Accounts Package" 
             to="/accounts-package"
           />
+
+          <SidebarItem 
+            icon={<Package size={16} />} 
+            text="Signal Packages" 
+            to="/signal-packages"
+          />
           
           <SidebarItem 
             icon={<AlertCircle size={16} />} 

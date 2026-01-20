@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, Save } from 'lucide-react';
-import { Settings } from 'lucide-react';
 import { getSettings, saveSettings, getAdminPath } from './settingsService';
 import SettingsTabs from './SettingsTabs';
 import GeneralSettings from './GeneralSettings';
@@ -28,7 +27,7 @@ const SiteSettings = () => {
       try {
         const [data, path] = await Promise.all([
           getSettings(token),
-          getAdminPath(token)
+          getAdminPath(token),
         ]);
         setSettings(data);
         setAdminPath(path);
@@ -42,23 +41,33 @@ const SiteSettings = () => {
     loadSettings();
   }, [token]);
 
+  // Updated handleInputChange to support nested objects
   const handleInputChange = (e) => {
-    const { name, value, checked } = e.target;
-    setSettings(prev => ({
-      ...prev,
-      [name]: e.target.type === 'checkbox' ? checked : value
-    }));
+    const { name, type, value, checked } = e.target;
+
+    if (type === 'object' && typeof value === 'object') {
+      // Handle nested objects (like signalStrength)
+      setSettings((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    } else {
+      setSettings((prev) => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value,
+      }));
+    }
   };
 
   const handleFileChange = (e, type) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FormData();
+      const reader = new FileReader();
       reader.onloadend = () => {
-        setSettings(prev => ({
+        setSettings((prev) => ({
           ...prev,
-          [reader]: file,
-          [`${reader.result}Preview`]: file.result
+          [type]: file,
+          [`${type}Preview`]: reader.result,
         }));
       };
       reader.readAsDataURL(file);
@@ -66,21 +75,35 @@ const SiteSettings = () => {
   };
 
   const handleSave = async () => {
-  try {
-    setIsLoading(true);
-    await saveSettings(settings, token); // Use token from useAuth
-    const newAdminPath = await getAdminPath(token);
-    setAdminPath(newAdminPath);
-    alert(`Settings saved successfully! Admin panel path updated to: /api/${newAdminPath}`);
-  } catch (error) {
-    console.error('Failed to save settings:', error);
-    alert('Failed to save settings');
-  } finally {
-    setIsLoading(false);
-  }
-};
+    try {
+      setIsLoading(true);
 
-  if (isLoading) {
+      // Convert nested objects if needed (like signalStrength)
+      const payload = {
+        ...settings,
+        signalStrength:
+          typeof settings.signalStrength === 'object'
+            ? JSON.stringify(settings.signalStrength)
+            : settings.signalStrength,
+      };
+
+      await saveSettings(payload, token);
+
+      const newAdminPath = await getAdminPath(token);
+      setAdminPath(newAdminPath);
+
+      alert(
+        `Settings saved successfully! Admin panel path updated to: /api/${newAdminPath}`
+      );
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      alert('Failed to save settings');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading || !settings) {
     return (
       <div className="flex-1 overflow-y-auto bg-[#1E252C] p-6 flex items-center justify-center">
         <div className="text-[#aab8c5]">Loading settings...</div>
@@ -107,11 +130,21 @@ const SiteSettings = () => {
       <SettingsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Tab Content */}
-      {activeTab === 'Dashboard' && <GeneralSettings settings={settings} handleInputChange={handleInputChange} />}
-      {activeTab === 'Logo' && <LogoSettings settings={settings} handleFileChange={handleFileChange} />}
-      {activeTab === 'Icon' && <IconSettings settings={settings} handleFileChange={handleFileChange} />}
-      {activeTab === 'System' && <SystemSettings settings={settings} handleInputChange={handleInputChange} />}
-      {activeTab === 'Email' && <EmailSettings settings={settings} handleInputChange={handleInputChange} />}
+      {activeTab === 'Dashboard' && (
+        <GeneralSettings settings={settings} handleInputChange={handleInputChange} />
+      )}
+      {activeTab === 'Logo' && (
+        <LogoSettings settings={settings} handleFileChange={handleFileChange} />
+      )}
+      {activeTab === 'Icon' && (
+        <IconSettings settings={settings} handleFileChange={handleFileChange} />
+      )}
+      {activeTab === 'System' && (
+        <SystemSettings settings={settings} handleInputChange={handleInputChange} />
+      )}
+      {activeTab === 'Email' && (
+        <EmailSettings settings={settings} handleInputChange={handleInputChange} />
+      )}
 
       {/* Save Button */}
       <div className="mt-6 flex justify-end">

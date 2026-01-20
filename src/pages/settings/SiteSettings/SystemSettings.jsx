@@ -1,224 +1,158 @@
 import React from 'react';
-import { Server, Mail, MessageSquare, CheckCircle, User, Home, Bell, Share2 } from 'lucide-react';
+import { Server, CheckCircle, Bell, Share2 } from 'lucide-react';
 import SettingCard from './SettingCard';
 
-const SystemSettings = ({ settings, handleInputChange, handleSave }) => {
-  // Fixed toggle handler that properly uses the current state from settings
+const SystemSettings = ({ settings, handleInputChange }) => {
+  // Toggle a boolean setting
   const handleToggle = (name) => {
     handleInputChange({
       target: {
         name,
         type: 'checkbox',
-        checked: !settings[name] // Use the current state from settings
-      }
+        checked: !settings[name],
+      },
     });
   };
 
+  // Update nested object for signal strength cards
+  const handleSignalChange = (key, value) => {
+    handleInputChange({
+      target: {
+        name: 'signalStrength',
+        type: 'object',
+        value: { ...settings.signalStrength, [key]: value },
+      },
+    });
+  };
+
+  const formatLabel = (key) => key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+
   return (
     <div className="space-y-6">
+      {/* System Status */}
       <SettingCard title="System Status" icon={<Server className="h-5 w-5 text-blue-500" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => handleToggle('systemStatus')} // Pass the name directly
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.systemStatus ? 'bg-blue-600' : 'bg-gray-400'}`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.systemStatus ? 'translate-x-6' : 'translate-x-1'}`}
-              />
-            </button>
-            <label className="ml-2 block text-sm text-[#A5AFC4]">
-              System Status
-            </label>
-          </div>
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => handleToggle('translationStatus')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.translationStatus ? 'bg-blue-600' : 'bg-gray-400'}`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.translationStatus ? 'translate-x-6' : 'translate-x-1'}`}
-              />
-            </button>
-            <label className="ml-2 block text-sm text-[#A5AFC4]">
-              Translation Status
-            </label>
-          </div>
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => handleToggle('withdrawalStatus')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.withdrawalStatus ? 'bg-blue-600' : 'bg-gray-400'}`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.withdrawalStatus ? 'translate-x-6' : 'translate-x-1'}`}
-              />
-            </button>
-            <label className="ml-2 block text-sm text-[#A5AFC4]">
-              Withdrawal Status
-            </label>
-          </div>
+          {['systemStatus', 'translationStatus', 'withdrawalStatus'].map((key) => (
+            <div key={key} className="flex items-center">
+              <button
+                type="button"
+                onClick={() => handleToggle(key)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  settings[key] ? 'bg-blue-600' : 'bg-gray-400'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    settings[key] ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <label className="ml-2 block text-sm text-[#A5AFC4]">{formatLabel(key)}</label>
+            </div>
+          ))}
         </div>
       </SettingCard>
 
+      {/* Verification Status */}
       <SettingCard title="Verification Status" icon={<CheckCircle className="h-5 w-5 text-green-500" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => handleToggle('textedVerificationStatus')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.textedVerificationStatus ? 'bg-blue-600' : 'bg-gray-400'}`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.textedVerificationStatus ? 'translate-x-6' : 'translate-x-1'}`}
-              />
-            </button>
-            <label className="ml-2 block text-sm text-[#A5AFC4]">
-              Texted Verification
-            </label>
-          </div>
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => handleToggle('idVerificationStatus')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.idVerificationStatus ? 'bg-blue-600' : 'bg-gray-400'}`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.idVerificationStatus ? 'translate-x-6' : 'translate-x-1'}`}
-              />
-            </button>
-            <label className="ml-2 block text-sm text-[#A5AFC4]">
-              ID Verification
-            </label>
-          </div>
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => handleToggle('emailVerificationStatus')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.emailVerificationStatus ? 'bg-blue-600' : 'bg-gray-400'}`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.emailVerificationStatus ? 'translate-x-6' : 'translate-x-1'}`}
-              />
-            </button>
-            <label className="ml-2 block text-sm text-[#A5AFC4]">
-              Email Verification
-            </label>
-          </div>
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => handleToggle('phoneVerificationStatus')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.phoneVerificationStatus ? 'bg-blue-600' : 'bg-gray-400'}`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.phoneVerificationStatus ? 'translate-x-6' : 'translate-x-1'}`}
-              />
-            </button>
-            <label className="ml-2 block text-sm text-[#A5AFC4]">
-              Phone Verification
-            </label>
-          </div>
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => handleToggle('addressVerificationStatus')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.addressVerificationStatus ? 'bg-blue-600' : 'bg-gray-400'}`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.addressVerificationStatus ? 'translate-x-6' : 'translate-x-1'}`}
-              />
-            </button>
-            <label className="ml-2 block text-sm text-[#A5AFC4]">
-              Address Verification
-            </label>
-          </div>
+          {[
+            'textedVerificationStatus',
+            'idVerificationStatus',
+            'emailVerificationStatus',
+            'phoneVerificationStatus',
+            'addressVerificationStatus',
+          ].map((key) => (
+            <div key={key} className="flex items-center">
+              <button
+                type="button"
+                onClick={() => handleToggle(key)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  settings[key] ? 'bg-blue-600' : 'bg-gray-400'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    settings[key] ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <label className="ml-2 block text-sm text-[#A5AFC4]">{formatLabel(key)}</label>
+            </div>
+          ))}
         </div>
       </SettingCard>
 
+      {/* Notification Status */}
       <SettingCard title="Notification Status" icon={<Bell className="h-5 w-5 text-yellow-500" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => handleToggle('emailNotificationStatus')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.emailNotificationStatus ? 'bg-blue-600' : 'bg-gray-400'}`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.emailNotificationStatus ? 'translate-x-6' : 'translate-x-1'}`}
-              />
-            </button>
-            <label className="ml-2 block text-sm text-[#A5AFC4]">
-              Email Notification
-            </label>
-          </div>
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => handleToggle('smsNotificationStatus')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.smsNotificationStatus ? 'bg-blue-600' : 'bg-gray-400'}`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.smsNotificationStatus ? 'translate-x-6' : 'translate-x-1'}`}
-              />
-            </button>
-            <label className="ml-2 block text-sm text-[#A5AFC4]">
-              SMS Notification
-            </label>
-          </div>
+          {['emailNotificationStatus', 'smsNotificationStatus'].map((key) => (
+            <div key={key} className="flex items-center">
+              <button
+                type="button"
+                onClick={() => handleToggle(key)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  settings[key] ? 'bg-blue-600' : 'bg-gray-400'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    settings[key] ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <label className="ml-2 block text-sm text-[#A5AFC4]">{formatLabel(key)}</label>
+            </div>
+          ))}
         </div>
       </SettingCard>
 
+      {/* Other Status */}
       <SettingCard title="Other Status" icon={<Share2 className="h-5 w-5 text-purple-500" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => handleToggle('trackStatus')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.trackStatus ? 'bg-blue-600' : 'bg-gray-400'}`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.trackStatus ? 'translate-x-6' : 'translate-x-1'}`}
-              />
-            </button>
-            <label className="ml-2 block text-sm text-[#A5AFC4]">
-              Track Status
-            </label>
-          </div>
-          <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => handleToggle('compleStatus')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.compleStatus ? 'bg-blue-600' : 'bg-gray-400'}`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.compleStatus ? 'translate-x-6' : 'translate-x-1'}`}
-              />
-            </button>
-            <label className="ml-2 block text-sm text-[#A5AFC4]">
-              Comple Status
-            </label>
-          </div>
-          {/* <div className="flex items-center">
-            <button
-              type="button"
-              onClick={() => handleToggle('referralStatus')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${settings.referralStatus ? 'bg-blue-600' : 'bg-gray-400'}`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.referralStatus ? 'translate-x-6' : 'translate-x-1'}`}
-              />
-            </button>
-            <label className="ml-2 block text-sm text-[#A5AFC4]">
-              Referral Status
-            </label>
-          </div> */}
+          {['trackStatus', 'compleStatus'].map((key) => (
+            <div key={key} className="flex items-center">
+              <button
+                type="button"
+                onClick={() => handleToggle(key)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  settings[key] ? 'bg-blue-600' : 'bg-gray-400'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    settings[key] ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <label className="ml-2 block text-sm text-[#A5AFC4]">{formatLabel(key)}</label>
+            </div>
+          ))}
         </div>
       </SettingCard>
 
-      
+      {/* Signal Strength Cards */}
+      {[
+        { key: 'copyTrading', label: 'Copy Trading', color: 'indigo' },
+        { key: 'tradingPackage', label: 'Trading Package', color: 'teal' },
+        { key: 'trading', label: 'Trading', color: 'cyan' },
+        { key: 'mining', label: 'Mining', color: 'orange' },
+      ].map(({ key, label, color }) => (
+        <SettingCard key={key} title={label} icon={<Share2 className={`h-5 w-5 text-${color}-500`} />}>
+          <div className="space-y-3">
+            <label className="block text-sm text-[#A5AFC4]">{label} Signal Strength (%)</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={settings?.signalStrength?.[key] ?? 100}
+              onChange={(e) => handleSignalChange(key, Number(e.target.value))}
+              className="w-full bg-[#1E252C] border border-[#2F3944] rounded-md px-3 py-2 text-white text-sm"
+            />
+            <p className="text-xs text-gray-400">100% = full · 50% = half · 0% = disabled</p>
+          </div>
+        </SettingCard>
+      ))}
     </div>
   );
 };

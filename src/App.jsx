@@ -56,6 +56,9 @@ import ErrorBoundary from './components/ErrorBoundary';
 import PageNotFound from './components/PageNotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 
+import SignalPackage from './pages/SignalPackage/SignalPackage';
+
+
 function App() {
   return (
     <>
@@ -126,6 +129,8 @@ function App() {
           </Route>
 
           <Route path="accounts-package" element={<AccountsPackage />} />
+          <Route path="signal-packages" element={<SignalPackage />} />
+
 
           <Route path="popup">
             <Route index element={<PopupForm />} />

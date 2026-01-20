@@ -71,6 +71,17 @@ export default function Copytrading() {
     totalCopiedAmount: 0,
     totalCommission: 0
   });
+  const [showAddTraderModal, setShowAddTraderModal] = useState(false);
+const [newTrader, setNewTrader] = useState({
+  username: '',
+  email: '',
+  fullName: '',
+  country: '',
+  tradingStyle: 'day',
+  riskLevel: 'medium',
+  markets: ['crypto']
+});
+
   
   const [filters, setFilters] = useState({
     search: '',
@@ -149,6 +160,41 @@ export default function Copytrading() {
       console.error('Error fetching platform stats:', error);
     }
   };
+
+const handleCreateTrader = async () => {
+  try {
+    if (!newTrader.username || !newTrader.email) {
+      toast.error('Username and email are required');
+      return;
+    }
+
+    const response = await axios.post(
+      `${API_BASE_URL}/admin/copy-trading/traders`,
+      newTrader,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (response.data.success) {
+      toast.success('Trader created successfully');
+      setShowAddTraderModal(false);
+      setNewTrader({
+        username: '',
+        email: '',
+        fullName: '',
+        country: '',
+        tradingStyle: 'day',
+        riskLevel: 'medium',
+        markets: ['crypto']
+      });
+      fetchTraders();
+      fetchPlatformStats();
+    }
+  } catch (error) {
+    console.error('Create trader error:', error);
+    toast.error(error.response?.data?.error || 'Failed to create trader');
+  }
+};
+
 
   const handleFilterChange = (key, value) => {
     const newFilters = { ...filters, [key]: value };
@@ -471,7 +517,7 @@ export default function Copytrading() {
             {/* Add Trader button (if needed) */}
             <button 
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center text-sm shadow-lg"
-              onClick={() => toast.info('Add trader functionality coming soon')}
+              onClick={() => setShowAddTraderModal(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Trader
@@ -718,6 +764,105 @@ export default function Copytrading() {
           </div>
         </div>
       </div>
+
+      {/* Add Trader Modal */}
+{showAddTraderModal && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="bg-[#282F36] rounded-lg shadow-xl w-full max-w-md">
+      <div className="p-4 border-b border-[#303943] flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-white">Add New Trader</h3>
+        <button 
+          onClick={() => setShowAddTraderModal(false)}
+          className="text-[#A5AFC4] hover:text-white"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="p-4 space-y-4">
+        <div>
+          <label className="block text-sm text-[#A5AFC4] mb-1">Username *</label>
+          <input
+            className="w-full bg-[#1E232A] border border-[#303943] rounded-lg px-3 py-2 text-white"
+            value={newTrader.username}
+            onChange={(e) => setNewTrader({...newTrader, username: e.target.value})}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-[#A5AFC4] mb-1">Email *</label>
+          <input
+            className="w-full bg-[#1E232A] border border-[#303943] rounded-lg px-3 py-2 text-white"
+            value={newTrader.email}
+            onChange={(e) => setNewTrader({...newTrader, email: e.target.value})}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-[#A5AFC4] mb-1">Full Name</label>
+          <input
+            className="w-full bg-[#1E232A] border border-[#303943] rounded-lg px-3 py-2 text-white"
+            value={newTrader.fullName}
+            onChange={(e) => setNewTrader({...newTrader, fullName: e.target.value})}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-[#A5AFC4] mb-1">Country</label>
+          <input
+            className="w-full bg-[#1E232A] border border-[#303943] rounded-lg px-3 py-2 text-white"
+            value={newTrader.country}
+            onChange={(e) => setNewTrader({...newTrader, country: e.target.value})}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm text-[#A5AFC4] mb-1">Trading Style</label>
+            <select
+              className="w-full bg-[#1E232A] border border-[#303943] rounded-lg px-3 py-2 text-white"
+              value={newTrader.tradingStyle}
+              onChange={(e) => setNewTrader({...newTrader, tradingStyle: e.target.value})}
+            >
+              <option value="day">Day Trading</option>
+              <option value="swing">Swing Trading</option>
+              <option value="scalp">Scalping</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-[#A5AFC4] mb-1">Risk Level</label>
+            <select
+              className="w-full bg-[#1E232A] border border-[#303943] rounded-lg px-3 py-2 text-white"
+              value={newTrader.riskLevel}
+              onChange={(e) => setNewTrader({...newTrader, riskLevel: e.target.value})}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 border-t border-[#303943] flex justify-end space-x-3">
+        <button 
+          onClick={() => setShowAddTraderModal(false)}
+          className="px-4 py-2 bg-[#303943] text-[#A5AFC4] rounded-lg"
+        >
+          Cancel
+        </button>
+        <button 
+          onClick={handleCreateTrader}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+        >
+          Create Trader
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
       {/* Trader Details Modal */}
       {showTraderModal && selectedTrader && (
