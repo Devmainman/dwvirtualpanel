@@ -198,20 +198,20 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
 
           <SidebarItem 
             icon={<CreditCard size={16} />} 
-            text="Cards" 
-            to="/cards"
+            text="Packages" 
+            to="/packages"
             hasChildren={true}
-            expanded={isMenuExpanded("cards")}
-            onClick={() => toggleMenu("cards")}
+            expanded={isMenuExpanded("Packages")}
+            onClick={() => toggleMenu("Packages")}
           />
-          {isMenuExpanded("cards") && (
+          {isMenuExpanded("Packages") && (
             <div className="ml-1 mt-1 pl-2 border-l border-gray-700">
-              <NestedItem text="Cards Settings" to="/cards/cardssettings" />
-              <NestedItem text="Purchased Cards" to="/cards/purchasedcards" />
+              <NestedItem text="Accounts Package" to="/accounts-package" />
+              <NestedItem text="Signal Packages" to="/signal-packages" />
             </div>
           )}
           
-          <SidebarItem 
+          {/* <SidebarItem 
             icon={<Package size={16} />} 
             text="Accounts Package" 
             to="/accounts-package"
@@ -221,7 +221,7 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
             icon={<Package size={16} />} 
             text="Signal Packages" 
             to="/signal-packages"
-          />
+          /> */}
           
           <SidebarItem 
             icon={<AlertCircle size={16} />} 
@@ -255,7 +255,7 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
               <NestedItem text="Other Invoice" to="/transactions/other-invoice" />
               <NestedItem text="Bot Invoice" to="/transactions/bot-invoice" />
               <NestedItem text="Signal Invoice" to="/transactions/signal-invoice" />
-              <NestedItem text="Card Invoice" to="/transactions/card-invoice" />
+              {/* <NestedItem text="Card Invoice" to="/transactions/card-invoice" /> */}
             </div>
           )}
           
@@ -308,11 +308,21 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
             </div>
           )}
 
-          <SidebarItem 
+<SidebarItem 
   icon={<Copy size={16} />} 
   text="Copy Trading" 
   to="/copy-trading"
+  hasChildren={true}
+  expanded={isMenuExpanded("copy-trading")}
+  onClick={() => toggleMenu("copy-trading")}
 />
+{isMenuExpanded("copy-trading") && (
+  <div className="ml-1 mt-1 pl-2 border-l border-gray-700">
+    <NestedItem text="Traders" to="/copy-trading" />
+    <NestedItem text="Copied Trades" to="/copy-trading/copied-trades" />
+    {/* <NestedItem text="Manage Trader Trades" to="/copy-trading/trader/TRD0003/trades" /> */}
+  </div>
+)}
           
           <SidebarItem 
             icon={<Settings size={16} />} 

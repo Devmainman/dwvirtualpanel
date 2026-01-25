@@ -9,6 +9,8 @@ import {
   updateTradePackage, deleteTradePackage 
 } from '../../api/adminTradingApi';
 
+
+
 export default function TradeSettings() {
   const { token } = useAuth();
   const [packages, setPackages] = useState([]);
@@ -17,16 +19,20 @@ export default function TradeSettings() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [filterStatus, setFilterStatus] = useState('all');
   const [newPackage, setNewPackage] = useState({
-    name: '',
-    description: '',
-    minAmount: 100,
-    maxAmount: 1000,
-    rate: 2.5,
-    interval: 'minute',
-    duration: 24,
-    currency: 'NGN',
-    status: 'active'
-  });
+  name: '',
+  description: '',
+  minAmount: 0,
+  maxAmount: 0,
+  profitRate: 0,
+  profitInterval: 'minute',
+  duration: 1,
+  status: 'active'
+});
+const [editingPackage, setEditingPackage] = useState(null);
+
+
+
+
 
   useEffect(() => {
     fetchPackages();
@@ -62,21 +68,56 @@ export default function TradeSettings() {
       const response = await createTradePackage(token, newPackage);
       setPackages([...packages, response.package]);
       setIsModalOpen(false);
+      resetForm();
       setNewPackage({
         name: '',
         description: '',
-        minAmount: 100,
-        maxAmount: 1000,
-        rate: 2.5,
-        interval: 'minute',
-        duration: 24,
-        currency: 'NGN',
+        minAmount: 0,
+        maxAmount: 0,
+        profitRate: 0,
+        profitInterval: 'minute',
+        duration: 1,
         status: 'active'
       });
+
+
     } catch (error) {
       console.error("Failed to create package:", error);
     }
   };
+
+  const handleSave = async () => {
+  try {
+    if (editingPackage) {
+      const res = await updateTradePackage(token, editingPackage._id, newPackage);
+
+      setPackages(packages.map(p =>
+        p._id === editingPackage._id ? res.package : p
+      ));
+    } else {
+      const res = await createTradePackage(token, newPackage);
+      setPackages([...packages, res.package]);
+    }
+
+    setIsModalOpen(false);
+    setEditingPackage(null);
+    setNewPackage({
+      name: '',
+      description: '',
+      minAmount: 0,
+      maxAmount: 0,
+      profitRate: 0,
+      profitInterval: 'minute',
+      duration: 1,
+      status: 'active'
+    });
+
+
+  } catch (error) {
+    console.error("Failed to save package:", error.response?.data || error.message);
+  }
+};
+
 
   const toggleSortOrder = () => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
 
@@ -156,7 +197,7 @@ export default function TradeSettings() {
               <p className="text-purple-100 text-sm">Average Rate</p>
               <h3 className="text-white text-2xl font-bold mt-1">
                 {packages.length > 0 
-                  ? (packages.reduce((sum, pkg) => sum + pkg.rate, 0) / packages.length).toFixed(1) 
+                  ? (packages.reduce((sum, pkg) => sum + pkg.profitRate, 0) / packages.length).toFixed(1) 
                   : 0}%
               </h3>
             </div>
@@ -278,16 +319,16 @@ export default function TradeSettings() {
                       
                       <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                         <div className="text-[#A5AFC4]">Min Amount:</div>
-                        <div className="text-white font-medium">${pkg.minAmount}</div>
+                        <div className="text-white font-medium">{pkg.minAmount.toLocaleString()} {pkg.minAmount.toLocaleString()}</div>
                         
                         <div className="text-[#A5AFC4]">Max Amount:</div>
-                        <div className="text-white font-medium">${pkg.maxAmount}</div>
+                        <div className="text-white font-medium">{pkg.maxAmount.toLocaleString()} {pkg.maxAmount.toLocaleString()}</div>
                         
                         <div className="text-[#A5AFC4]">Rate:</div>
-                        <div className="text-white font-medium">{pkg.rate}%</div>
+                        <div className="text-white font-medium">{pkg.profitRate}%</div>
                         
                         <div className="text-[#A5AFC4]">Interval:</div>
-                        <div className="text-white font-medium">{formatInterval(pkg.interval)}</div>
+                        <div className="text-white font-medium">{formatInterval(pkg.profitInterval)}</div>
                       </div>
                       
                       <div className="flex justify-between items-center pt-2 border-t border-[#404A56]">
@@ -295,9 +336,27 @@ export default function TradeSettings() {
                           {pkg.description || 'No description'}
                         </div>
                         <div className="flex space-x-1">
-                          <button className="p-2 rounded-full hover:bg-indigo-500/20 text-indigo-400">
-                            <Edit2 className="h-4 w-4" />
-                          </button>
+                         <button
+  className="text-indigo-400 hover:text-indigo-300 p-2 rounded hover:bg-indigo-500/20"
+  onClick={() => {
+    setEditingPackage(pkg);
+    setNewPackage({
+      name: pkg.name,
+      description: pkg.description || '',
+      minAmount: pkg.minAmount,
+      maxAmount: pkg.maxAmount,
+      profitRate: pkg.profitRate,
+      profitInterval: pkg.profitInterval,
+      duration: pkg.duration,
+      status: pkg.status
+    });
+
+    setIsModalOpen(true);
+  }}
+>
+  <Edit2 className="h-4 w-4" />
+</button>
+
                           <button 
                             onClick={() => handleDelete(pkg._id)}
                             className="p-2 rounded-full hover:bg-red-500/20 text-red-400"
@@ -316,17 +375,21 @@ export default function TradeSettings() {
                         <span className="text-white font-medium">{pkg.name}</span>
                       </div>
 
-                      {/* Min Amount */}
-                      <div className="col-span-2 text-[#A5AFC4]">${pkg.minAmount.toLocaleString()}</div>
+                      <div className="col-span-2 text-[#A5AFC4]">
+  {pkg.minAmount.toLocaleString()} {pkg.defaultCurrency || 'USD'}
 
-                      {/* Max Amount */}
-                      <div className="col-span-2 text-[#A5AFC4]">${pkg.maxAmount.toLocaleString()}</div>
+</div>
+
+<div className="col-span-2 text-[#A5AFC4]">
+  {pkg.maxAmount.toLocaleString()} {pkg.currency}
+</div>
+
 
                       {/* Rate */}
-                      <div className="col-span-1 text-white font-medium">{pkg.rate}%</div>
+                      <div className="col-span-1 text-white font-medium">{pkg.profitRate}%</div>
 
                       {/* Interval */}
-                      <div className="col-span-2 text-[#A5AFC4]">{formatInterval(pkg.interval)}</div>
+                      <div className="col-span-2 text-[#A5AFC4]">{formatInterval(pkg.profitRate)}</div>
 
                       {/* Status */}
                       <div className="col-span-1">
@@ -341,9 +404,27 @@ export default function TradeSettings() {
 
                       {/* Actions */}
                       <div className="col-span-2 flex justify-end space-x-2">
-                        <button className="text-indigo-400 hover:text-indigo-300 p-2 rounded hover:bg-indigo-500/20">
-                          <Edit2 className="h-4 w-4" />
-                        </button>
+                        <button
+  className="text-indigo-400 hover:text-indigo-300 p-2 rounded hover:bg-indigo-500/20"
+  onClick={() => {
+    setEditingPackage(pkg);
+    setNewPackage({
+  name: pkg.name,
+  description: pkg.description || '',
+  minAmount: pkg.minAmount,
+  maxAmount: pkg.maxAmount,
+  profitRate: pkg.profitRate,
+  profitInterval: pkg.profitInterval,
+  duration: pkg.duration,
+  status: pkg.status
+});
+
+    setIsModalOpen(true);
+  }}
+>
+  <Edit2 className="h-4 w-4" />
+</button>
+
                         <button 
                           onClick={() => handleDelete(pkg._id)}
                           className="text-red-400 hover:text-red-300 p-2 rounded hover:bg-red-500/20"
@@ -449,8 +530,8 @@ export default function TradeSettings() {
                       type="number" 
                       step="0.1"
                       className="w-full bg-[#1E232A] border border-[#303943] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={newPackage.rate}
-                      onChange={(e) => setNewPackage({...newPackage, rate: parseFloat(e.target.value) || 0})}
+                     value={newPackage.profitRate}
+                     onChange={(e) => setNewPackage({...newPackage, profitRate: parseFloat(e.target.value) || 0})}
                       placeholder="2.5"
                     />
                   </div>
@@ -471,8 +552,8 @@ export default function TradeSettings() {
                     <label className="block text-sm font-medium text-[#A5AFC4] mb-1">Interval</label>
                     <select 
                       className="w-full bg-[#1E232A] border border-[#303943] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={newPackage.interval}
-                      onChange={(e) => setNewPackage({...newPackage, interval: e.target.value})}
+                      value={newPackage.profitInterval}
+                      onChange={(e) => setNewPackage({...newPackage, profitInterval: e.target.value})}
                     >
                       <option value="minute">Every Minute</option>
                       <option value="5-minutes">Every 5 Minutes</option>
@@ -482,19 +563,7 @@ export default function TradeSettings() {
                       <option value="daily">Daily</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#A5AFC4] mb-1">Currency</label>
-                    <select 
-                      className="w-full bg-[#1E232A] border border-[#303943] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={newPackage.currency}
-                      onChange={(e) => setNewPackage({...newPackage, currency: e.target.value})}
-                    >
-                      <option value="NGN">NGN</option>
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                      <option value="GBP">GBP</option>
-                    </select>
-                  </div>
+                
                 </div>
                 
                 <div>
@@ -537,7 +606,7 @@ export default function TradeSettings() {
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
                 onClick={handleCreate}
               >
-                Create Package
+                {editingPackage ? "Update Package" : "Create Package"}
               </button>
             </div>
           </div>

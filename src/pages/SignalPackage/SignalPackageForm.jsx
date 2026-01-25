@@ -52,15 +52,6 @@ const SignalPackageForm = ({
         onChange={(e) => setNewPackage({ ...newPackage, amount: e.target.value })}
       />
 
-      {/* Duration */}
-      <input
-        placeholder="Duration (e.g. 1 month, 3 months)"
-        className="w-full mb-3 bg-[#303943] p-2 rounded"
-        value={newPackage.duration}
-        onChange={(e) => setNewPackage({ ...newPackage, duration: e.target.value })}
-      />
-
-
       {/* Strength */}
       <input
         type="number"

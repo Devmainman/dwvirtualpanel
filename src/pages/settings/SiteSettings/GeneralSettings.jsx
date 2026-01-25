@@ -1,36 +1,9 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../../../api/config';
-import { useAuth } from '../../../context/AuthContext';
-import { Globe, Link, Mail, Signal, Currency, Settings } from 'lucide-react';
+import { Globe, Link, Mail, Signal, Settings } from 'lucide-react';
 import SettingCard from './SettingCard';
 
 const GeneralSettings = ({ settings, handleInputChange }) => {
-  const [currencies, setCurrencies] = useState([]);
-  const [isLoadingCurrencies, setIsLoadingCurrencies] = useState(true);
-  const { token } = useAuth();
-
-  useEffect(() => {
-    const fetchCurrencies = async () => {
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/admin/currencies?status=Enabled&limit=151`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setCurrencies(response.data.currencies || []);
-      } catch (error) {
-        console.error('Failed to fetch currencies', error);
-      } finally {
-        setIsLoadingCurrencies(false);
-      }
-    };
-
-    if (token) {
-      fetchCurrencies();
-    }
-  }, [token]);
-
   const validateAdminPath = (value) => {
     if (value && !/^[a-zA-Z0-9_-]+$/.test(value)) {
       return 'Admin Path must contain only letters, numbers, hyphens, or underscores';
@@ -38,7 +11,6 @@ const GeneralSettings = ({ settings, handleInputChange }) => {
     return '';
   };
 
-  
   return (
     <div className="space-y-6">
       <SettingCard title="Website Settings" icon={<Globe className="h-5 w-5 text-blue-500" />}>
@@ -91,67 +63,6 @@ const GeneralSettings = ({ settings, handleInputChange }) => {
         </div>
       </SettingCard>
 
-     
-
-     
-
-      <SettingCard title="Currency Settings" icon={<Currency className="h-5 w-5 text-green-500" />}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-[#6B7280] mb-1">Currency API Key</label>
-            <input
-              type="text"
-              name="currencyApiKey"
-              value={settings.currencyApiKey || 'Enter Your Currency Api Key'}
-              onChange={handleInputChange}
-              className="w-full bg-[#303943] border border-[#3A4451] text-[#A5AFC4] p-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#6B7280] mb-1">Currency API URL</label>
-            <input
-              type="text"
-              name="currencyApiUrl"
-              value={settings.currencyApiUrl || 'http://api.exchangerate.host/convert'}
-              onChange={handleInputChange}
-              className="w-full bg-[#303943] border border-[#3A4451] text-[#A5AFC4] p-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#6B7280] mb-1">Currency Interval</label>
-            <input
-              type="text"
-              name="currencyInterval"
-              value={settings.currencyInterval || 'Every Six Hours'}
-              onChange={handleInputChange}
-              className="w-full bg-[#303943] border border-[#3A4451] text-[#A5AFC4] p-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#6B7280] mb-1">Default Currency</label>
-            {isLoadingCurrencies ? (
-              <div className="w-full bg-[#303943] border border-[#3A4451] text-[#A5AFC4] p-2 rounded-md">
-                Loading currencies...
-              </div>
-            ) : (
-              <select
-              name="defaultCurrency"
-              value={settings.defaultCurrency || ''}
-              onChange={handleInputChange}
-              className="w-full bg-[#303943] border border-[#3A4451] text-[#A5AFC4] p-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select a currency</option>
-              {currencies.map((currency) => (
-                <option key={currency.code} value={currency.code}>
-                  {currency.title} ({currency.code})
-                </option>
-              ))}
-            </select>
-            )}
-          </div>
-         
-        </div>
-      </SettingCard>
       <SettingCard title="Other Settings" icon={<Settings className="h-5 w-5 text-purple-500" />}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="">

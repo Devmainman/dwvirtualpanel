@@ -11,14 +11,14 @@ const SignalPackage = () => {
 
   const [packages, setPackages] = useState([]);
   const [newPackage, setNewPackage] = useState({
-    name: '',
-    strength: '',
-    amount: '',
-    duration: '', 
-    benefits: [''],
-    icon: '',
-    active: true
-  });
+  name: '',
+  strength: '',
+  amount: '',
+  benefits: [''],
+  icon: '',
+  active: true
+});
+
 
   const [editingId, setEditingId] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -51,7 +51,6 @@ const SignalPackage = () => {
       formData.append('name', newPackage.name);
       formData.append('strength', Number(newPackage.strength));
       formData.append('amount', Number(newPackage.amount));
-      formData.append('duration', newPackage.duration);   
       formData.append('benefits', JSON.stringify(newPackage.benefits));
 
       if (newPackage.iconFile) {
@@ -93,13 +92,13 @@ const SignalPackage = () => {
 
   const handleEditPackage = (pkg) => {
     setNewPackage({
-      name: pkg.name,
-      strength: pkg.strength?.toString() || '',
-      amount: pkg.amount.toString(),
-      duration: pkg.duration || '',
-      benefits: pkg.benefits?.length ? [...pkg.benefits, ''] : [''],
-      icon: pkg.icon || ''
-    });
+    name: pkg.name,
+    strength: pkg.strength?.toString() || '',
+    amount: pkg.amount.toString(),
+    benefits: pkg.benefits?.length ? [...pkg.benefits, ''] : [''],
+    icon: pkg.icon || ''
+  });
+
 
     setEditingId(pkg._id);
     setShowCreateForm(true);
@@ -110,7 +109,6 @@ const SignalPackage = () => {
       name: '',
       strength: '',
       amount: '',
-      duration: '',
       benefits: [''],
       icon: ''
     });

@@ -1,6 +1,6 @@
 // pages/copytrading/Copytrading.jsx
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Search, Users, TrendingUp, DollarSign, BarChart, 
   Download, Eye, Pause, Play, Shield, Trash2, 
@@ -58,6 +58,7 @@ const VerificationBadge = ({ verified, level }) => {
 export default function Copytrading() {
   const { token } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [traders, setTraders] = useState([]);
   const [selectedTrader, setSelectedTrader] = useState(null);
@@ -629,6 +630,13 @@ const handleCreateTrader = async () => {
                           >
                             <Shield className="h-4 w-4" />
                           </button>
+<button 
+  onClick={() => navigate(`/copy-trading/trader/${trader.traderId}/trades`)}
+  className="text-green-400 hover:text-green-300 p-2 rounded hover:bg-green-500/20"
+  title="Manage Trades"
+>
+  <BarChart className="h-4 w-4" />
+</button>
                         </div>
                       </div>
                     </div>

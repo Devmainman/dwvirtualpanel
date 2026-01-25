@@ -48,8 +48,11 @@ import SiteSettings from './pages/settings/SiteSettings/SiteSettings';
 import WithdrawalSettings from './pages/settings/WithdrawalSettings';
 import TradingMode from './pages/settings/TradingMode';
 
-// ADD THIS IMPORT
+// Copy Trading imports
 import Copytrading from './pages/copytrading/Copytrading';
+import CopiedTrades from './pages/copytrading/CopiedTrades';
+import TraderTrades from './pages/copytrading/TraderTrades';
+// import CopyTradingAnalytics from './pages/copytrading/CopyTradingAnalytics'; // Comment out for now
 
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -57,7 +60,6 @@ import PageNotFound from './components/PageNotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import SignalPackage from './pages/SignalPackage/SignalPackage';
-
 
 function App() {
   return (
@@ -83,8 +85,14 @@ function App() {
             <Route path="trading-mode" element={<TradingMode />} />
           </Route>
 
-          {/* ADD THIS NEW ROUTE */}
-          <Route path="copy-trading" element={<Copytrading />} />
+          {/* Copy Trading */}
+          <Route path="copy-trading">
+            <Route index element={<Copytrading />} />
+            <Route path="traders" element={<Copytrading />} />
+            <Route path="copied-trades" element={<CopiedTrades />} />
+             <Route path="trader/:traderId/trades" element={<TraderTrades />} />
+            {/* <Route path="analytics" element={<CopyTradingAnalytics />} /> */}
+          </Route>
 
           <Route path="mining">
             <Route index element={<MiningOverview />} />
@@ -131,7 +139,6 @@ function App() {
           <Route path="accounts-package" element={<AccountsPackage />} />
           <Route path="signal-packages" element={<SignalPackage />} />
 
-
           <Route path="popup">
             <Route index element={<PopupForm />} />
             <Route path="form" element={<PopupForm />} />
@@ -168,7 +175,6 @@ function App() {
           <Route path="support" element={<Support />} />
         </Route>
 
-       
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

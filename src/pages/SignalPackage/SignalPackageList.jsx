@@ -20,16 +20,22 @@ const SignalPackageList = ({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {packages.map(pkg => (
-          <SignalPackageItem
-            key={pkg._id}
-            pkg={pkg}
-            handleEditPackage={handleEditPackage}
-            handleDeletePackage={handleDeletePackage}
-          />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="text-gray-400">Loading packages...</div>
+      ) : packages.length === 0 ? (
+        <div className="text-gray-400">No signal packages created yet.</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {packages.map(pkg => (
+            <SignalPackageItem
+              key={pkg._id}
+              pkg={pkg}
+              handleEditPackage={handleEditPackage}
+              handleDeletePackage={handleDeletePackage}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

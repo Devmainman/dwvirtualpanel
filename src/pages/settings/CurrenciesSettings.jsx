@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, RefreshCw } from 'lucide-react';
+import { Search, RefreshCw, Settings as SettingsIcon, Currency, Globe } from 'lucide-react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../api/config';
 import { useAuth } from '../../context/AuthContext';
@@ -12,6 +12,52 @@ const CurrenciesSettings = () => {
   const [totalCurrencies, setTotalCurrencies] = useState(0);
   const [loading, setLoading] = useState(true);
   const { token } = useAuth();
+  
+  // Modal state
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  
+  // Currency settings state
+  const [currencySettings, setCurrencySettings] = useState({
+    currencyApiKey: '',
+    currencyApiUrl: '',
+    currencyInterval: '',
+    defaultCurrency: ''
+  });
+  
+  // Currency list for dropdown
+  const [currenciesList, setCurrenciesList] = useState([]);
+  const [loadingCurrencies, setLoadingCurrencies] = useState(false);
+
+  // Fetch currencies list for dropdown
+  const fetchCurrenciesList = async () => {
+    setLoadingCurrencies(true);
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/admin/currencies?status=Enabled&limit=151`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setCurrenciesList(response.data.currencies || []);
+    } catch (error) {
+      console.error('Failed to fetch currencies list', error);
+    } finally {
+      setLoadingCurrencies(false);
+    }
+  };
+
+  // Fetch currency settings
+  const fetchCurrencySettings = async () => {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/admin/settings/currency`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.settings) {
+        setCurrencySettings(response.data.settings);
+      }
+    } catch (error) {
+      console.error('Failed to fetch currency settings', error);
+    }
+  };
 
   // Fetch currencies from backend
   const fetchCurrencies = async () => {
@@ -45,8 +91,45 @@ const CurrenciesSettings = () => {
   useEffect(() => {
     if (token) {
       fetchCurrencies();
+      fetchCurrencySettings();
+      fetchCurrenciesList();
     }
   }, [currentPage, itemsPerPage, searchTerm, token]);
+
+  // Handle settings modal open
+  const handleOpenSettings = () => {
+    fetchCurrencySettings();
+    fetchCurrenciesList();
+    setShowSettingsModal(true);
+  };
+
+  // Handle settings modal close
+  const handleCloseSettings = () => {
+    setShowSettingsModal(false);
+  };
+
+  // Handle settings input change
+  const handleSettingsChange = (e) => {
+    const { name, value } = e.target;
+    setCurrencySettings(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Save currency settings
+  const saveCurrencySettings = async () => {
+    try {
+      await axios.put(
+        `${API_BASE_URL}/admin/settings/currency`,
+        currencySettings,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      handleCloseSettings();
+    } catch (error) {
+      console.error('Failed to save currency settings', error);
+    }
+  };
 
   // Toggle currency status
   const toggleStatus = async (id) => {
@@ -132,6 +215,13 @@ const CurrenciesSettings = () => {
         <h1 className="text-2xl font-semibold text-[#aab8c5]">MANAGE CURRENCIES</h1>
         <div className="p-1 bg-[#282F36]">
           <div className="flex flex-wrap gap-3">
+            <button 
+              onClick={handleOpenSettings}
+              className="px-4 py-2 bg-blue-900 text-blue-100 rounded text-sm hover:bg-[#3A4451] transition-colors duration-150 flex items-center gap-2"
+            >
+              <SettingsIcon className="h-4 w-4" />
+              Currency Settings
+            </button>
             <button 
               onClick={() => batchUpdateStatus('Enabled')}
               className="px-4 py-2 bg-green-900 text-green-100 rounded text-sm hover:bg-[#3A4451] transition-colors duration-150"
@@ -355,6 +445,113 @@ const CurrenciesSettings = () => {
           </div>
         </div>
       </div>
+
+      {/* Currency Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-[#282F36] rounded-lg shadow-xl w-full max-w-2xl border border-[#2F3944]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-[#2F3944]">
+              <div className="flex items-center">
+                <Currency className="h-6 w-6 text-green-500 mr-3" />
+                <h2 className="text-xl font-semibold text-[#aab8c5]">Currency Settings</h2>
+              </div>
+              <button
+                onClick={handleCloseSettings}
+                className="text-[#A5AFC4] hover:text-white transition-colors duration-150"
+              >
+                <span className="text-2xl">×</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-[#6B7280] mb-1">Currency API Key</label>
+                  <input
+                    type="text"
+                    name="currencyApiKey"
+                    value={currencySettings.currencyApiKey || ''}
+                    onChange={handleSettingsChange}
+                    className="w-full bg-[#303943] border border-[#3A4451] text-[#A5AFC4] p-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter Your Currency API Key"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#6B7280] mb-1">Currency API URL</label>
+                  <input
+                    type="text"
+                    name="currencyApiUrl"
+                    value={currencySettings.currencyApiUrl || ''}
+                    onChange={handleSettingsChange}
+                    className="w-full bg-[#303943] border border-[#3A4451] text-[#A5AFC4] p-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="http://api.exchangerate.host/convert"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#6B7280] mb-1">Currency Interval</label>
+                  <select
+                    name="currencyInterval"
+                    value={currencySettings.currencyInterval || ''}
+                    onChange={handleSettingsChange}
+                    className="w-full bg-[#303943] border border-[#3A4451] text-[#A5AFC4] p-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Select Interval</option>
+                    <option value="Every Hour">Every Hour</option>
+                    <option value="Every 3 Hours">Every 3 Hours</option>
+                    <option value="Every 6 Hours">Every 6 Hours</option>
+                    <option value="Every 12 Hours">Every 12 Hours</option>
+                    <option value="Daily">Daily</option>
+                    <option value="Weekly">Weekly</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#6B7280] mb-1">Default Currency</label>
+                  {loadingCurrencies ? (
+                    <div className="w-full bg-[#303943] border border-[#3A4451] text-[#A5AFC4] p-2 rounded-md">
+                      Loading currencies...
+                    </div>
+                  ) : (
+                    <select
+                      name="defaultCurrency"
+                      value={currencySettings.defaultCurrency || ''}
+                      onChange={handleSettingsChange}
+                      className="w-full bg-[#303943] border border-[#3A4451] text-[#A5AFC4] p-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select a default currency</option>
+                      {currenciesList.map((currency) => (
+                        <option key={currency.code} value={currency.code}>
+                          {currency.title} ({currency.code})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end gap-3 p-6 border-t border-[#2F3944]">
+              <button
+                onClick={handleCloseSettings}
+                className="px-4 py-2 bg-[#303943] text-[#A5AFC4] rounded-md hover:bg-[#3A4451] transition-colors duration-150"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveCurrencySettings}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-150"
+              >
+                Save Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
