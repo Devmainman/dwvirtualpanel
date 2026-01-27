@@ -320,6 +320,7 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
   <div className="ml-1 mt-1 pl-2 border-l border-gray-700">
     <NestedItem text="Traders" to="/copy-trading" />
     <NestedItem text="Copied Trades" to="/copy-trading/copied-trades" />
+    <NestedItem text="Trader Management" to="/copy-trading/trader-management" />
     {/* <NestedItem text="Manage Trader Trades" to="/copy-trading/trader/TRD0003/trades" /> */}
   </div>
 )}

@@ -52,6 +52,7 @@ import TradingMode from './pages/settings/TradingMode';
 import Copytrading from './pages/copytrading/Copytrading';
 import CopiedTrades from './pages/copytrading/CopiedTrades';
 import TraderTrades from './pages/copytrading/TraderTrades';
+import TraderManagement from './pages/copytrading/TraderManagement';
 // import CopyTradingAnalytics from './pages/copytrading/CopyTradingAnalytics'; // Comment out for now
 
 import Layout from './components/Layout';
@@ -91,6 +92,7 @@ function App() {
             <Route path="traders" element={<Copytrading />} />
             <Route path="copied-trades" element={<CopiedTrades />} />
              <Route path="trader/:traderId/trades" element={<TraderTrades />} />
+             <Route path="trader-management" element={<TraderManagement />} />
             {/* <Route path="analytics" element={<CopyTradingAnalytics />} /> */}
           </Route>
 
