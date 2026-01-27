@@ -4,29 +4,30 @@ import {
   RefreshCw, Globe, HardDrive, Smartphone, Monitor,
   Chrome, MapPin, Clock, Link, Eye, Scroll,
   MousePointerClick, Cookie, AlertCircle,
-  User, Shield, Laptop, Tablet
+  User, Shield, Laptop, Tablet, Users, Calendar,
+  BarChart3, ExternalLink, Hash
 } from 'lucide-react';
 import axios from 'axios';
 import { getAdminApiBaseUrl } from '../api/config';
 import { useAuth } from '../context/AuthContext';
 
 export default function BrowsingHistory() {
-  const [history, setHistory] = useState([]);
+  const [sessions, setSessions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
-  const [expandedRow, setExpandedRow] = useState(null);
+  const [expandedSession, setExpandedSession] = useState(null);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, pages: 1 });
   const { token } = useAuth();
 
   useEffect(() => {
-    fetchHistory();
+    fetchSessions();
   }, [searchTerm, filterRole, sortBy, sortOrder, page]);
 
-  const fetchHistory = async () => {
+  const fetchSessions = async () => {
     setIsLoading(true);
     try {
       if (!token) {
@@ -44,25 +45,46 @@ export default function BrowsingHistory() {
           limit: 10
         }
       });
-      setHistory(response.data.data.map(item => ({
-        ...item,
-        date: new Date(item.date),
-        visitedPages: item.visitedPages.map(page => ({
+      
+      // Transform the data to include calculated session duration
+      const transformedSessions = response.data.data.map(session => ({
+        ...session,
+        date: new Date(session.date),
+        updatedAt: new Date(session.updatedAt),
+        visitedPages: session.visitedPages?.map(page => ({
           ...page,
           timestamp: new Date(page.timestamp)
-        }))
-      })));
+        })) || [],
+        // Add calculated fields for display
+        pagesVisited: session.visitedPages?.length || 0,
+        sessionDuration: calculateSessionDuration(session.visitedPages)
+      }));
+      
+      setSessions(transformedSessions);
       setPagination(response.data.pagination);
     } catch (error) {
-      console.error('Failed to fetch history:', {
+      console.error('Failed to fetch browsing sessions:', {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data
       });
-      setHistory([]);
+      setSessions([]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const calculateSessionDuration = (visitedPages) => {
+    if (!visitedPages || visitedPages.length === 0) return '0m 0s';
+    
+    const firstVisit = new Date(visitedPages[0].timestamp);
+    const lastVisit = new Date(visitedPages[visitedPages.length - 1].timestamp);
+    const durationMs = lastVisit - firstVisit;
+    
+    const minutes = Math.floor(durationMs / (1000 * 60));
+    const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
+    
+    return `${minutes}m ${seconds}s`;
   };
 
   const getRoleColor = (role) => {
@@ -99,6 +121,10 @@ export default function BrowsingHistory() {
   const getBrowserIcon = (browser) => {
     if (browser?.toLowerCase().includes('chrome')) {
       return <Chrome className="h-4 w-4 text-blue-500" />;
+    } else if (browser?.toLowerCase().includes('firefox')) {
+      return <Chrome className="h-4 w-4 text-orange-500" />;
+    } else if (browser?.toLowerCase().includes('safari')) {
+      return <Chrome className="h-4 w-4 text-blue-400" />;
     }
     return <Globe className="h-4 w-4" />;
   };
@@ -113,36 +139,85 @@ export default function BrowsingHistory() {
     setPage(1);
   };
 
-  const toggleRow = (id) => {
-    setExpandedRow(expandedRow === id ? null : id);
+  const toggleSession = (sessionId) => {
+    setExpandedSession(expandedSession === sessionId ? null : sessionId);
+  };
+
+  const fetchSessionDetails = async (sessionId) => {
+    try {
+      const adminBaseUrl = await getAdminApiBaseUrl(token);
+      const response = await axios.get(`${adminBaseUrl}/history/session/${sessionId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Update the session with detailed info
+      setSessions(prev => prev.map(session => 
+        session._id === sessionId ? { ...session, ...response.data.data } : session
+      ));
+    } catch (error) {
+      console.error('Failed to fetch session details:', error);
+    }
   };
 
   // Calculate stats
-  const totalVisits = pagination.total;
-  const adminVisits = history.filter(v => v.userRole === 'Admin').length;
-  const premiumVisits = history.filter(v => v.userRole === 'Premium User').length;
-  const guestVisits = history.filter(v => v.userRole === 'Guest').length;
+  const totalSessions = pagination.total;
+  const totalPagesVisited = sessions.reduce((sum, session) => sum + (session.visitedPages?.length || 0), 0);
+  const averagePagesPerSession = totalSessions > 0 ? (totalPagesVisited / totalSessions).toFixed(1) : 0;
+  
+  // Get unique visitors
+  const uniqueVisitors = [...new Set(sessions.map(session => session.ip))].length;
+
+  // Calculate average session duration
+  const averageSessionDuration = sessions.length > 0 
+    ? sessions.reduce((sum, session) => {
+        if (!session.visitedPages || session.visitedPages.length === 0) return sum;
+        const firstVisit = new Date(session.visitedPages[0].timestamp);
+        const lastVisit = new Date(session.visitedPages[session.visitedPages.length - 1].timestamp);
+        return sum + (lastVisit - firstVisit);
+      }, 0) / sessions.length
+    : 0;
+
+  const formatDuration = (ms) => {
+    const minutes = Math.floor(ms / (1000 * 60));
+    const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+    return `${minutes}m ${seconds}s`;
+  };
+
+  const formatTime = (date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatDate = (date) => {
+    const now = new Date();
+    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return date.toLocaleDateString();
+  };
 
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#1E232A]">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-2">
-        <h1 className="text-xl md:text-2xl font-semibold text-white">Browsing History</h1>
+        <h1 className="text-xl md:text-2xl font-semibold text-white">Browsing Sessions</h1>
         <div className="flex items-center space-x-2 bg-[#282F36] px-3 py-1 rounded-lg">
           <span className="text-sm text-[#aab8c5]">Analytics</span>
           <ChevronRight size={14} className="text-gray-500" />
-          <span className="text-sm font-medium text-white">History</span>
+          <span className="text-sm font-medium text-white">Browsing History</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-[#282F36] rounded-lg p-4 shadow-lg border border-[#303943]/50">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[#A5AFC4] text-xs">Total Visits</p>
-              <h3 className="text-white text-xl font-bold mt-1">{totalVisits}</h3>
+              <p className="text-[#A5AFC4] text-xs">Total Sessions</p>
+              <h3 className="text-white text-xl font-bold mt-1">{totalSessions}</h3>
             </div>
             <div className="bg-[#303943] p-2 rounded-lg">
-              <Globe className="h-4 w-4 text-[#A5AFC4]" />
+              <Users className="h-4 w-4 text-[#A5AFC4]" />
             </div>
           </div>
           <div className="mt-3 flex items-center text-xs text-[#A5AFC4]">
@@ -150,49 +225,52 @@ export default function BrowsingHistory() {
             Updated just now
           </div>
         </div>
+        
         <div className="bg-[#282F36] rounded-lg p-4 shadow-lg border border-[#303943]/50">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[#A5AFC4] text-xs">Admin Visits</p>
-              <h3 className="text-white text-xl font-bold mt-1">{adminVisits}</h3>
+              <p className="text-[#A5AFC4] text-xs">Total Pages</p>
+              <h3 className="text-white text-xl font-bold mt-1">{totalPagesVisited}</h3>
             </div>
-            <div className="bg-purple-900/30 p-2 rounded-lg">
-              <Shield className="h-4 w-4 text-purple-400" />
+            <div className="bg-indigo-900/30 p-2 rounded-lg">
+              <BarChart3 className="h-4 w-4 text-indigo-400" />
             </div>
           </div>
           <div className="mt-3 flex items-center text-xs">
-            <span className="text-purple-400">{totalVisits ? Math.round((adminVisits / totalVisits) * 100) : 0}%</span>
-            <span className="text-[#A5AFC4] ml-1">of total</span>
+            <span className="text-indigo-400">{averagePagesPerSession} avg per session</span>
           </div>
         </div>
+        
         <div className="bg-[#282F36] rounded-lg p-4 shadow-lg border border-[#303943]/50">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[#A5AFC4] text-xs">Premium Visits</p>
-              <h3 className="text-white text-xl font-bold mt-1">{premiumVisits}</h3>
+              <p className="text-[#A5AFC4] text-xs">Unique Visitors</p>
+              <h3 className="text-white text-xl font-bold mt-1">{uniqueVisitors}</h3>
             </div>
             <div className="bg-blue-900/30 p-2 rounded-lg">
-              <User className="h-4 w-4 text-blue-400" />
+              <Eye className="h-4 w-4 text-blue-400" />
             </div>
           </div>
           <div className="mt-3 flex items-center text-xs text-[#A5AFC4]">
-            <span>Filtered for user dashboard</span>
+            <User className="h-3 w-3 mr-1" />
+            Based on IP addresses
           </div>
         </div>
+        
         <div className="bg-[#282F36] rounded-lg p-4 shadow-lg border border-[#303943]/50">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[#A5AFC4] text-xs">Guest Visits</p>
-              <h3 className="text-white text-xl font-bold mt-1">{guestVisits}</h3>
+              <p className="text-[#A5AFC4] text-xs">Avg. Session</p>
+              <h3 className="text-white text-xl font-bold mt-1">{formatDuration(averageSessionDuration)}</h3>
             </div>
-            <div className="bg-gray-900/30 p-2 rounded-lg">
-              <Eye className="h-4 w-4 text-gray-400" />
+            <div className="bg-green-900/30 p-2 rounded-lg">
+              <Clock className="h-4 w-4 text-green-400" />
             </div>
           </div>
           <div className="bg-[#303943] w-full h-1.5 rounded-full mt-3">
             <div
-              className="bg-gray-500 h-1.5 rounded-full"
-              style={{ width: `${totalVisits ? (guestVisits / totalVisits) * 100 : 0}%` }}
+              className="bg-green-500 h-1.5 rounded-full"
+              style={{ width: `${Math.min(100, (averageSessionDuration / (1000 * 60 * 10)) * 100)}%` }}
             ></div>
           </div>
         </div>
@@ -205,7 +283,7 @@ export default function BrowsingHistory() {
           </div>
           <input
             type="text"
-            placeholder="Search history..."
+            placeholder="Search sessions, IP, domain..."
             className="block w-full pl-10 pr-3 py-2 bg-[#282F36] border border-[#303943] rounded-lg text-sm text-[#A5AFC4] focus:outline-none focus:ring-1 focus:ring-indigo-500"
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
@@ -218,28 +296,29 @@ export default function BrowsingHistory() {
             onChange={(e) => { setFilterRole(e.target.value); setPage(1); }}
           >
             <option value="all">All Roles</option>
-            <option value="Admin">Admin</option>
-            <option value="Premium User">Premium User</option>
-            <option value="Guest">Guest</option>
+            <option value="admin">Admin</option>
+            <option value="premium user">Premium User</option>
+            <option value="guest">Guest</option>
+            <option value="user">Regular User</option>
           </select>
         </div>
         <button
           className={`px-3 py-2 rounded-lg flex items-center text-sm border ${sortBy === 'date' ? 'bg-indigo-900/20 text-indigo-400 border-indigo-500/50' : 'bg-[#282F36] hover:bg-[#303943] text-[#A5AFC4] border-[#303943]/50'}`}
           onClick={() => handleSort('date')}
         >
-          <Clock className="h-4 w-4 mr-2" />
+          <Calendar className="h-4 w-4 mr-2" />
           Date {sortBy === 'date' && (sortOrder === 'asc' ? '↑' : '↓')}
         </button>
         <button
-          className={`px-3 py-2 rounded-lg flex items-center text-sm border ${sortBy === 'role' ? 'bg-indigo-900/20 text-indigo-400 border-indigo-500/50' : 'bg-[#282F36] hover:bg-[#303943] text-[#A5AFC4] border-[#303943]/50'}`}
-          onClick={() => handleSort('role')}
+          className={`px-3 py-2 rounded-lg flex items-center text-sm border ${sortBy === 'pages' ? 'bg-indigo-900/20 text-indigo-400 border-indigo-500/50' : 'bg-[#282F36] hover:bg-[#303943] text-[#A5AFC4] border-[#303943]/50'}`}
+          onClick={() => handleSort('pages')}
         >
-          <User className="h-4 w-4 mr-2" />
-          Role {sortBy === 'role' && (sortOrder === 'asc' ? '↑' : '↓')}
+          <BarChart3 className="h-4 w-4 mr-2" />
+          Pages {sortBy === 'pages' && (sortOrder === 'asc' ? '↑' : '↓')}
         </button>
         <button
           className="ml-auto bg-[#282F36] hover:bg-[#303943] text-[#A5AFC4] px-3 py-2 rounded-lg flex items-center text-sm border border-[#303943]/50"
-          onClick={fetchHistory}
+          onClick={fetchSessions}
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
         </button>
@@ -269,130 +348,151 @@ export default function BrowsingHistory() {
         {isLoading ? (
           <div className="py-12 flex flex-col items-center justify-center bg-[#282F36] rounded-lg">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
-            <div className="mt-4 text-[#A5AFC4]">Loading browsing history...</div>
+            <div className="mt-4 text-[#A5AFC4]">Loading browsing sessions...</div>
           </div>
-        ) : history.length === 0 ? (
+        ) : sessions.length === 0 ? (
           <div className="text-center py-12 bg-[#282F36] rounded-lg">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#303943] mb-4">
               <AlertCircle className="h-6 w-6 text-[#A5AFC4]" />
             </div>
-            <h3 className="text-lg font-medium text-white mb-1">No history records found</h3>
+            <h3 className="text-lg font-medium text-white mb-1">No browsing sessions found</h3>
             <p className="text-[#A5AFC4] mb-4">Try changing your filter settings</p>
           </div>
         ) : (
-          history.map((visit) => (
-            <div key={visit._id} className="bg-[#282F36] rounded-lg shadow-lg border border-[#303943]/50 overflow-hidden transition-all">
+          sessions.map((session) => (
+            <div key={session._id || session.sessionId} className="bg-[#282F36] rounded-lg shadow-lg border border-[#303943]/50 overflow-hidden transition-all">
               <div className="p-4 lg:p-6">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
                   <div className="md:hidden flex justify-between items-center mb-2">
                     <div className="flex items-center space-x-2">
-                      {getDeviceIcon(visit.basicInfo.device)}
-                      <span className="font-medium text-white">{visit.domain}</span>
+                      <Hash className="h-4 w-4 text-indigo-400" />
+                      <span className="font-medium text-white text-sm truncate">
+                        Session: {session.sessionId?.slice(-8)}
+                      </span>
                     </div>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(visit.userRole)}`}>
-                      {visit.userRole}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(session.userRole)}`}>
+                      {session.userRole}
                     </span>
                   </div>
+                  
                   <div className="md:col-span-2">
-                    <div className="text-xs text-[#6B7280]">IP Address</div>
-                    <div className="text-white font-mono">{visit.maskedIp || visit.ip}</div>
+                    <div className="text-xs text-[#6B7280]">Session ID</div>
+                    <div className="text-white font-mono text-sm truncate" title={session.sessionId}>
+                      {session.sessionId?.slice(-8)}...
+                    </div>
                   </div>
-                  <div className="hidden md:block md:col-span-2">
-                    <div className="text-xs text-[#6B7280] truncate">Domain</div>
-                    <div className="text-[#A5AFC4] truncate">{visit.domain}</div>
+                  
+                  <div className="hidden md:block md:col-span-1">
+                    <div className="text-xs text-[#6B7280]">IP</div>
+                    <div className="text-[#A5AFC4] font-mono text-sm">{session.ip}</div>
                   </div>
+                  
                   <div className="hidden md:block md:col-span-2">
                     <div className="text-xs text-[#6B7280]">User Role</div>
-                    <span className={`inline-flex items-center px-2 text-xs font-medium ${getRoleColor(visit.userRole)}`}>
-                      {visit.userRole}
+                    <span className={`inline-flex items-center px-2 text-xs font-medium ${getRoleColor(session.userRole)}`}>
+                      {session.userRole}
                     </span>
                   </div>
+                  
                   <div className="md:col-span-2">
-                    <div className="text-xs text-[#6B7280]">Date</div>
-                    <div className="text-[#A5AFC4]">
-                    <span className="md:hidden">{formatDateMobile(visit.date)}</span>
-                      <span className="hidden md:block">{visit.date.toLocaleDateString()}</span>
+                    <div className="text-xs text-[#6B7280]">Started</div>
+                    <div className="text-[#A5AFC4] text-sm">
+                      {formatDate(session.date)}
+                      <div className="text-xs">{formatTime(session.date)}</div>
                     </div>
                   </div>
+                  
+                  <div className="md:col-span-2">
+                    <div className="text-xs text-[#6B7280]">Pages & Duration</div>
+                    <div className="flex items-center space-x-3 text-sm">
+                      <div className="text-white">
+                        <span className="text-indigo-400">{session.pagesVisited || 0}</span> pages
+                      </div>
+                      <div className="text-[#A5AFC4]">
+                        {session.sessionDuration || '0m 0s'}
+                      </div>
+                    </div>
+                  </div>
+                  
                   <div className="hidden md:block md:col-span-1">
                     <div className="text-xs text-[#6B7280]">Device</div>
-                    <div className="flex items-center text-[#A5AFC4]">
-                      {getDeviceIcon(visit.basicInfo.device)}
-                      <span className="ml-1">{visit.basicInfo.device?.split(' ')[0]}</span>
+                    <div className="flex items-center text-[#A5AFC4] text-sm">
+                      {getDeviceIcon(session.basicInfo?.device)}
+                      <span className="ml-1 truncate">{session.basicInfo?.device?.split(' ')[0] || 'Unknown'}</span>
                     </div>
                   </div>
-                  <div className="hidden md:block md:col-span-1">
-                    <div className="text-xs text-[#6B7280]">OS</div>
-                    <div className="flex items-center text-[#A5AFC4]">
-                      {getOSIcon(visit.basicInfo?.os)}
-                      <span className="ml-1">{visit.basicInfo?.os?.split(' ')[0]}</span>
-                    </div>
-                  </div>
+                  
                   <div className="md:col-span-2 flex justify-end">
-                    <button
-                      onClick={() => toggleRow(visit._id)}
-                      className="p-2 bg-[#303943] text-[#A5AFC4] rounded-lg hover:bg-[#3A444F] hover:text-white"
-                    >
-                      {expandedRow === visit._id ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => toggleSession(session._id || session.sessionId)}
+                        className="p-2 bg-[#303943] text-[#A5AFC4] rounded-lg hover:bg-[#3A444F] hover:text-white"
+                      >
+                        {expandedSession === (session._id || session.sessionId) ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
-                {expandedRow === visit._id && (
+                
+                {expandedSession === (session._id || session.sessionId) && (
                   <div className="mt-6 pt-4 border-t border-[#303943]">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                       <div className="bg-[#303943] rounded-md p-4">
                         <h4 className="text-white text-sm font-medium mb-3 flex items-center">
-                          <Eye className="h-4 w-4 mr-2"></Eye>
-                            Basic Visitor Info
+                          <Eye className="h-4 w-4 mr-2" />
+                          Session Information
                         </h4>
                         <div className="space-y-3 text-xs">
                           <div className="flex justify-between">
+                            <span className="text-[#A5AFC4]">Session ID:</span>
+                            <code className="text-white bg-[#3A444F] px-2 py-1 rounded text-xs">
+                              {session.sessionId}
+                            </code>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-[#A5AFC4]">Started:</span>
+                            <span className="text-white">
+                              {session.date.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-[#A5AFC4]">Last Active:</span>
+                            <span className="text-white">
+                              {session.updatedAt.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
                             <span className="text-[#A5AFC4]">Device:</span>
                             <div className="flex items-center text-white">
-                              <span className="ml-2">{visit.basicInfo.device}</span>
-                              {getDeviceIcon(visit.basicInfo.device)}
+                              {getDeviceIcon(session.basicInfo?.device)}
+                              <span className="ml-2">{session.basicInfo?.device || 'Unknown'}</span>
                             </div>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-[#A5AFC4]">OS:</span>
                             <div className="flex items-center text-white">
-                              {getOSIcon(visit.basicInfo?.os)}
-                              <span className="ml-2">{visit.basicInfo.os}</span>
+                              {getOSIcon(session.basicInfo?.os)}
+                              <span className="ml-2">{session.basicInfo?.os || 'Unknown'}</span>
                             </div>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-[#A5AFC4]">Browser:</span>
                             <div className="flex items-center text-white">
-                              {getBrowserIcon(visit.basicInfo?.browser)}
-                              <span className="ml-2">{visit.basicInfo.browser}</span>
+                              {getBrowserIcon(session.basicInfo?.browser)}
+                              <span className="ml-2">{session.basicInfo?.browser || 'Unknown'}</span>
                             </div>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-[#A5AFC4]">Resolution:</span>
-                            <span className="text-white">{visit.basicInfo?.resolution || 'N/A'}</span>
-                          </div>
-                          <div className="flex justify-between">
                             <span className="text-[#A5AFC4]">Language:</span>
-                            <span className="text-white">{visit.basicInfo.language}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-[#A5AFC4]">Pages Visited:</span>
-                            <span className="text-white">{visit.basicInfo.pagesVisited}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-[#A5AFC4]">Session Duration:</span>
-                            <span className="text-white">{visit.basicInfo.sessionDuration}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-[#A5AFC4]">Interactions:</span>
-                            <span className="text-white">{visit.basicInfo.interactions}</span>
+                            <span className="text-white">{session.basicInfo?.language || 'Unknown'}</span>
                           </div>
                         </div>
                       </div>
+                      
                       <div className="bg-[#303943] rounded-lg p-4">
                         <h4 className="text-white text-sm font-medium mb-3 flex items-center">
                           <MapPin className="h-4 w-4 mr-2" />
@@ -401,73 +501,67 @@ export default function BrowsingHistory() {
                         <div className="space-y-3 text-xs">
                           <div className="flex justify-between">
                             <span className="text-[#A5AFC4]">Country:</span>
-                            <span className="text-white">{visit.location?.country || 'N/A'}</span>
+                            <span className="text-white">{session.location?.country || 'Unknown'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-[#A5AFC4]">City:</span>
-                            <span className="text-white">{visit.location?.city || ''}</span>
+                            <span className="text-white">{session.location?.city || 'Unknown'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-[#A5AFC4]">Region:</span>
-                            <span className="text-white">{visit.location?.region || ''}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-[#A5AFC4]">Postal Code:</span>
-                            <span className="text-white">{visit.location?.postalCode || ''}</span>
+                            <span className="text-white">{session.location?.region || 'Unknown'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-[#A5AFC4]">Timezone:</span>
-                            <span className="text-white">{visit.location?.timezone || ''}</span>
+                            <span className="text-white">{session.location?.timezone || 'Unknown'}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-[#A5AFC4]">ISP:</span>
-                            <span className="text-white">{visit.location?.isp || ''}</span>
+                            <span className="text-white">{session.location?.isp || 'Unknown'}</span>
                           </div>
                         </div>
                       </div>
+                      
                       <div className="bg-[#303943] rounded-lg p-4">
                         <h4 className="text-white text-sm font-medium mb-3 flex items-center">
-                          <Cookie className="h-4 w-4 mr-2" />
-                          Cookies & Pages Visited
+                          <Scroll className="h-4 w-4 mr-2" />
+                          Pages Visited ({session.visitedPages?.length || 0})
                         </h4>
-                        <div className="mb-4">
-                          <h5 className="text-xs text-[#A5AFC4] mb-2 flex items-center">
-                            <Cookie className="h-3 w-3 mr-1" />
-                            Cookies
-                          </h5>
-                          <div className="space-y-2">
-                            {visit.cookies?.length ? (
-                              visit.cookies.map((cookie) => (
-                                <div key={cookie.name} className="bg-[#3A444F] p-2 rounded text-xs">
-                                  <div className="font-medium text-white">{cookie.name}</div>
-                                  <div className="text-[#A5AFC4]">{cookie.purpose}</div>
+                        <div className="max-h-[12rem] overflow-y-auto border border-[#3A444F] rounded-md p-2">
+                          {session.visitedPages?.length ? (
+                            <div className="space-y-1">
+                              {session.visitedPages.map((page, index) => (
+                                <div 
+                                  key={`${page.url}-${page.timestamp}`} 
+                                  className="flex items-center justify-between text-xs p-2 hover:bg-[#3A444F]/50 rounded"
+                                >
+                                  <div className="flex items-center min-w-0">
+                                    <div className="w-5 h-5 flex items-center justify-center bg-indigo-900/30 text-indigo-400 rounded-full mr-2 flex-shrink-0">
+                                      {index + 1}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-white truncate" title={page.url}>
+                                        {page.url}
+                                      </div>
+                                      {page.title && (
+                                        <div className="text-[#A5AFC4] text-xxs truncate" title={page.title}>
+                                          {page.title}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2 flex-shrink-0">
+                                    <span className="text-[#6B7280] text-xxs">
+                                      {formatTime(new Date(page.timestamp))}
+                                    </span>
+                                    <ExternalLink className="h-3 w-3 text-[#A5AFC4]" />
+                                  </div>
                                 </div>
-                              ))
-                            ) : (
-                              <p className="text-[#A5AFC4] text-xs">No cookies recorded</p>
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <h5 className="text-xs text-[#A5AFC4] mb-2 flex items-center">
-                            <Scroll className="h-3 w-3 mr-1" />
-                            Pages Visited ({visit.visitedPages?.length || 0})
-                          </h5>
-                          <div className="max-h-[10rem] overflow-y-auto border border-[#3A444F] rounded-md p-2">
-                            {visit.visitedPages?.length ? (
-                              visit.visitedPages.map((page) => (
-                                <div key={page.url} className="flex items-center text-sm py-1 hover:bg-[#3A444F]/50 rounded">
-                                  <Link className="h-3 w-3 mr-2 text-[#A5AFC4] flex-shrink-0" />
-                                  <span className="text-[#A5AFC4] truncate text-xs">{page.url}</span>
-                                  <span className="ml-auto text-xxs text-[#6B7280] whitespace-nowrap">
-                                    {page.timestamp.toLocaleTimeString()}
-                                  </span>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-center text-[#6B7280] text-xs py-2">No pages visited</p>
-                            )}
-                          </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-center text-[#6B7280] text-xs py-2">No pages visited in this session</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -480,15 +574,4 @@ export default function BrowsingHistory() {
       </div>
     </div>
   );
-}
-
-function formatDateMobile(date) {
-  const now = new Date();
-  const diffMs = now - date;
-  const diffHrs = diffMs / (1000 * 60 * 60);
-  if (diffHrs < 24) {
-    return `${Math.round(diffHrs)} hours ago`;
-  }
-  const days = Math.floor(diffHrs / 24);
-  return `${days} ${days === 1 ? 'day' : 'days'} ago`;
 }
