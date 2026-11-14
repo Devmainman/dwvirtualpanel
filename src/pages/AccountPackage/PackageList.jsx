@@ -7,7 +7,8 @@ const PackageList = ({
   handleEditPackage,
   handleDeletePackage,
   toggleStatus,
-  isLoading
+  isLoading,
+  currency
 }) => {
   return (
     <div>
@@ -39,6 +40,7 @@ const PackageList = ({
             <PackageItem
               key={pkg._id}
               pkg={pkg}
+              currency={currency}
               handleEditPackage={handleEditPackage}
               handleDeletePackage={handleDeletePackage}
               toggleStatus={toggleStatus}

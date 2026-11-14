@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { STATIC_BASE_URL } from '../../api/config';
 import { 
   Eye, 
   ChevronDown, 
@@ -73,8 +74,8 @@ const IdVerification = () => {
             if (!acc[key] || new Date(item.submittedDate) > new Date(acc[key].submittedDate)) {
               acc[key] = {
                 ...item,
-                frontImageUrl: item.frontImageUrl ? `http://localhost:5000/uploads/id_documents/${item.frontImageUrl.split('/').pop()}` : null,
-                backImageUrl: item.backImageUrl ? `http://localhost:5000/uploads/id_documents/${item.backImageUrl.split('/').pop()}` : null
+                frontImageUrl: item.frontImageUrl ? `${STATIC_BASE_URL}/uploads/id_documents/${item.frontImageUrl.split('/').pop()}` : null,
+                backImageUrl: item.backImageUrl ? `${STATIC_BASE_URL}/uploads/id_documents/${item.backImageUrl.split('/').pop()}` : null
               };
             }
             return acc;

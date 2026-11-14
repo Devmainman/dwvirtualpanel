@@ -11,7 +11,7 @@ const getBenefitIcon = (benefit) => {
   return <CheckCircle className="h-3 w-3 md:h-4 md:w-4 mr-2 text-gray-500" />;
 };
 
-const PackageItem = ({ pkg, handleEditPackage, handleDeletePackage, toggleStatus, isLoading }) => {
+const PackageItem = ({ pkg, currency, handleEditPackage, handleDeletePackage, toggleStatus, isLoading }) => {
   return (
     <div className={`h-full bg-[#282F36] rounded-lg shadow-md p-4 md:p-6 border border-[#2F3944] ${
       isLoading ? 'opacity-75' : ''

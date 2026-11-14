@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -9,12 +9,8 @@ import FacialVerification from './pages/verification/FacialVerification';
 import AddressVerification from './pages/verification/AddressVerification';
 import Messaging from './pages/Messaging';
 import Browsinghistory from './pages/BrowsingHistory';
-import NftSetting from './pages/nfttrading/NftSettings';
-import NftStore from './pages/nfttrading/NftStore';
 import ActiveTrades from './pages/trades/ActiveTrades';
 import TradeSettings from './pages/trades/TradeSettings';
-import CardSettings from './pages/cards/CardsSettings';
-import PurchasedCards from './pages/cards/PurchasedCard';
 import AccountsPackage from './pages/AccountPackage/AccountPackage';
 import PopupForm from './pages/popup/PopupForm';
 import PopupInvoice from './pages/popup/PopupInvoice';
@@ -30,7 +26,7 @@ import AssignmentsPopup from './pages/assignments/AssignmentsPopup';
 import AssignmentsForms from './pages/assignments/AssignmentsForms';
 import AssignmentsInvoice from './pages/assignments/AssignmentsInvoice';
 import WithdrawalToken from './pages/WithdrawalToken';
-import Support from './pages/Support/Support';
+import TicketsAdmin from './products/TicketsAdmin';
 import LoginPage from './auth/LoginPage';
 
 import MiningOverview from './pages/mining/MiningOverview';
@@ -53,6 +49,7 @@ import Copytrading from './pages/copytrading/Copytrading';
 import CopiedTrades from './pages/copytrading/CopiedTrades';
 import TraderTrades from './pages/copytrading/TraderTrades';
 import TraderManagement from './pages/copytrading/TraderManagement';
+import TraderEdit from './pages/copytrading/TraderEdit';
 // import CopyTradingAnalytics from './pages/copytrading/CopyTradingAnalytics'; // Comment out for now
 
 import Layout from './components/Layout';
@@ -61,6 +58,12 @@ import PageNotFound from './components/PageNotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import SignalPackage from './pages/SignalPackage/SignalPackage';
+import ProductsOverview from './products/ProductsOverview';
+import RealEstateAdmin from './products/RealEstateAdmin';
+import StakingAdmin from './products/StakingAdmin';
+import StocksAdmin from './products/StocksAdmin';
+import { ColdStorageAdmin, CardsAdmin, WalletsAdmin } from './products/VaultsCardsWallets';
+import { MarketsAdmin, PackageTradesAdmin, MiningCatalogAdmin, NotificationsAdmin } from './products/TradingOps';
 
 function App() {
   return (
@@ -93,11 +96,26 @@ function App() {
             <Route path="copied-trades" element={<CopiedTrades />} />
              <Route path="trader/:traderId/trades" element={<TraderTrades />} />
              <Route path="trader-management" element={<TraderManagement />} />
+             <Route path="trader/:traderId/edit" element={<TraderEdit />} />
             {/* <Route path="analytics" element={<CopyTradingAnalytics />} /> */}
           </Route>
 
+          <Route path="products">
+            <Route index element={<ProductsOverview />} />
+            <Route path="real-estate" element={<RealEstateAdmin />} />
+            <Route path="staking" element={<StakingAdmin />} />
+            <Route path="stocks" element={<StocksAdmin />} />
+            <Route path="cold-storage" element={<ColdStorageAdmin />} />
+            <Route path="cards" element={<CardsAdmin />} />
+            <Route path="wallets" element={<WalletsAdmin />} />
+            <Route path="markets" element={<MarketsAdmin />} />
+            <Route path="packages" element={<PackageTradesAdmin />} />
+          </Route>
+          <Route path="notifications" element={<NotificationsAdmin />} />
+
           <Route path="mining">
             <Route index element={<MiningOverview />} />
+            <Route path="catalog" element={<MiningCatalogAdmin />} />
             <Route path="overview" element={<MiningOverview />} />
             <Route path="pools" element={<MiningPools />} />
             <Route path="equipment" element={<MiningEquipment />} />
@@ -120,22 +138,20 @@ function App() {
           <Route path="messaging" element={<Messaging />} />
           <Route path="browsinghistory" element={<Browsinghistory />} />
 
-          <Route path="nfttrading">
-            <Route index element={<NftStore />} />
-            <Route path="nftStores" element={<NftStore />} />
-            <Route path="nftSettings" element={<NftSetting />} />
-          </Route>
+          <Route path="nfttrading/*" element={<Navigate to="/products" replace />} />
 
           <Route path="trades">
             <Route index element={<ActiveTrades />} />
             <Route path="active" element={<ActiveTrades />} />
+            <Route path="packages" element={<PackageTradesAdmin />} />
+            <Route path="markets" element={<MarketsAdmin />} />
             <Route path="settings" element={<TradeSettings />} />
           </Route>
 
           <Route path="cards">
-            <Route index element={<CardSettings />} />
-            <Route path="cardssettings" element={<CardSettings />} />
-            <Route path="purchasedcards" element={<PurchasedCards />} />
+            <Route index element={<CardsAdmin />} />
+            <Route path="cardssettings" element={<CardsAdmin />} />
+            <Route path="purchasedcards" element={<CardsAdmin />} />
           </Route>
 
           <Route path="accounts-package" element={<AccountsPackage />} />
@@ -174,7 +190,7 @@ function App() {
           </Route>
 
           <Route path="withdrawal-token" element={<WithdrawalToken />} />
-          <Route path="support" element={<Support />} />
+          <Route path="support" element={<TicketsAdmin />} />
         </Route>
 
         <Route path="*" element={<PageNotFound />} />

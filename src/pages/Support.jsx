@@ -251,7 +251,7 @@ const Support = () => {
 
           {/* Ticket List with custom scrollbar */}
           <div className="flex-1 overflow-y-auto bg-[#1E293B] custom-scrollbar">
-            <style jsx>{`
+            <style>{`
               .custom-scrollbar::-webkit-scrollbar {
                 width: 4px;
               }

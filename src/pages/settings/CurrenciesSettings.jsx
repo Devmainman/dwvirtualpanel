@@ -3,6 +3,7 @@ import { Search, RefreshCw, Settings as SettingsIcon, Currency, Globe } from 'lu
 import axios from 'axios';
 import { API_BASE_URL } from '../../api/config';
 import { useAuth } from '../../context/AuthContext';
+import { FxPanel } from '../../products/TradingOps';
 
 const CurrenciesSettings = () => {
   const [currencies, setCurrencies] = useState([]);
@@ -210,6 +211,7 @@ const CurrenciesSettings = () => {
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#1E252C] p-6">
+      <FxPanel />
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center border border-[#2F3944] justify-between mb-6 bg-[#282F36] p-4 rounded-sm">
         <h1 className="text-2xl font-semibold text-[#aab8c5]">MANAGE CURRENCIES</h1>

@@ -5,7 +5,7 @@ import {
   AlertCircle, FileText, DollarSign, Clipboard,
   LifeBuoy, Settings, ChevronDown, ChevronRight, 
   CreditCard, CheckCircle, MapPin, UserCheck, History, Image,
-  Cpu, Drill, Zap, Award, Users, BarChart, Copy,
+  Cpu, Drill, Zap, Award, Users, BarChart, Copy, Bell, LayoutGrid,
 } from "lucide-react";
 
 const SidebarItem = ({ icon, text, to, hasChildren = false, expanded = false, onClick }) => {
@@ -102,7 +102,7 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
 
       {/* Scrollable Content */}
       <div className="h-[calc(100vh-65px)] overflow-y-auto px-3 custom-scrollbar">
-        <style jsx>{`
+        <style>{`
           .custom-scrollbar::-webkit-scrollbar {
             width: 4px;
           }
@@ -134,6 +134,26 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
             text="Manage Users" 
             to="/users"
           />
+
+          <SidebarItem 
+            icon={<LayoutGrid size={16} />} 
+            text="Products" 
+            to="/products"
+            hasChildren={true}
+            expanded={isMenuExpanded("products")}
+            onClick={() => toggleMenu("products")}
+          />
+          {isMenuExpanded("products") && (
+            <div className="ml-1 mt-1 pl-2 border-l border-gray-700">
+              <NestedItem text="Overview" to="/products" />
+              <NestedItem text="Real Estate" to="/products/real-estate" />
+              <NestedItem text="Staking" to="/products/staking" />
+              <NestedItem text="Stocks" to="/products/stocks" />
+              <NestedItem text="Cold Storage" to="/products/cold-storage" />
+              <NestedItem text="Cards" to="/products/cards" />
+              <NestedItem text="Connected Wallets" to="/products/wallets" />
+            </div>
+          )}
           
           <SidebarItem 
             icon={<UserCheck size={16} />} 
@@ -164,19 +184,10 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
           />
 
           <SidebarItem 
-            icon={<Image size={16} />} 
-            text="NFT Trading" 
-            to="/nfttrading"  // ✅ Lowercase to match App.jsx
-            hasChildren={true}
-            expanded={isMenuExpanded("nfttrading")}  // ✅ Match with route key
-            onClick={() => toggleMenu("nfttrading")}  // ✅ Match with route key
+            icon={<Bell size={16} />} 
+            text="Notifications" 
+            to="/notifications"
           />
-          {isMenuExpanded("nfttrading") && (
-            <div className="ml-1 mt-1 pl-2 border-l border-gray-700">
-              <NestedItem text="NFT Store" to="/nfttrading/nftStores" />  {/* ✅ Lowercase base path */}
-              <NestedItem text="NFT Settings" to="/nfttrading/nftSettings" />  {/* ✅ Lowercase base path */}
-            </div>
-          )}
 
 
           
@@ -192,6 +203,8 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
           {isMenuExpanded("trades") && (
             <div className="ml-1 mt-1 pl-2 border-l border-gray-700">
               <NestedItem text="Active Trades" to="/trades/active" />
+              <NestedItem text="Package Trades" to="/trades/packages" />
+              <NestedItem text="Live Markets" to="/trades/markets" />
               <NestedItem text="Trade Setting" to="/trades/settings" />
             </div>
           )}
@@ -298,6 +311,7 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
           {isMenuExpanded("mining") && (
             <div className="ml-1 mt-1 pl-2 border-l border-gray-700">
               <NestedItem text="Overview" to="/mining/overview" />
+              <NestedItem text="Shop Catalog" to="/mining/catalog" />
               <NestedItem text="Pools" to="/mining/pools" />
               <NestedItem text="Equipment" to="/mining/equipment" />
               <NestedItem text="Sessions" to="/mining/sessions" />

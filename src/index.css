@@ -69,3 +69,24 @@ body {
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+/* ---- Product screens: gentle spring motion ---- */
+@keyframes pk-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes pk-rise { from { opacity: 0; transform: translateY(8px) scale(.985) } to { opacity: 1; transform: none } }
+@keyframes pk-row { from { opacity: 0; transform: translateY(4px) } to { opacity: 1; transform: none } }
+@keyframes pk-sheet { 0% { opacity: 0; transform: translateY(28px) scale(.98) } 60% { opacity: 1; transform: translateY(-3px) scale(1.003) } 100% { transform: none } }
+.pk-fade { animation: pk-fade .35s ease both }
+.pk-rise { animation: pk-rise .5s cubic-bezier(.22,1,.36,1) both }
+.pk-row { animation: pk-row .35s ease both }
+.pk-sheet { animation: pk-sheet .45s cubic-bezier(.22,1,.36,1) both }
+@media (prefers-reduced-motion: reduce) {
+  .pk-fade, .pk-rise, .pk-row, .pk-sheet { animation: none !important }
+}
+
+/* ---- manage users drawer ---- */
+@keyframes mu-drawer-in { from { transform: translateX(40px); opacity: 0 } to { transform: none; opacity: 1 } }
+@keyframes mu-drawer-out { to { transform: translateX(40px); opacity: 0 } }
+@keyframes mu-fade-out { to { opacity: 0 } }
+.mu-drawer-in { animation: mu-drawer-in .38s cubic-bezier(.22,1,.36,1) both }
+.mu-drawer-out { animation: mu-drawer-out .22s ease-in both }
+.mu-fade-out { animation: mu-fade-out .22s ease both }
+@media (prefers-reduced-motion: reduce) { .mu-drawer-in, .mu-drawer-out, .mu-fade-out { animation: none !important } }

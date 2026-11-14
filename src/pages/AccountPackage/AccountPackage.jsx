@@ -11,6 +11,7 @@ const AccountPackage = () => {
   const { user, token, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [packages, setPackages] = useState([]);
+  const [currency, setCurrency] = useState('USD');
   const [newPackage, setNewPackage] = useState({
     name: '',
     icon: '',
@@ -24,6 +25,53 @@ const AccountPackage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+   const fetchDefaultCurrency = async () => {
+    try {
+      const response = await fetch('/api/public/settings/default-currency'); // Adjust endpoint as needed
+      const data = await response.json();
+      if (data.success && data.currency) {
+        setCurrency(data.currency);
+      }
+    } catch (err) {
+      console.error('Failed to fetch currency:', err);
+      // Keep default as USD
+    }
+  };
+
+  useEffect(() => {
+    console.log('Current Auth State:', getAuthDebugInfo());
+
+    const fetchPackages = async () => {
+      if (!token) {
+        setError('Authentication token not found');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        console.log('Fetching packages with token:', token.substring(0, 10) + '...');
+        const response = await packageService.getPackages(token);
+        setPackages(response.packages || []);
+        setError(null);
+      } catch (err) {
+        console.error('Fetch Error:', {
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data
+        });
+        setError(`Failed to load packages: ${err.message}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (!authLoading) {
+      fetchPackages();
+      fetchDefaultCurrency(); // Fetch currency when component loads
+    }
+  }, [token, authLoading]);
 
   // Debug function with enhanced token info
   const getAuthDebugInfo = () => ({
@@ -225,7 +273,7 @@ const handleAddPackage = async () => {
       {/* Enhanced Debug Panel */}
      
 
-    <PackageHeader packages={packages} />
+    <PackageHeader packages={packages} currency={currency} />
       
       {error && (
         <div className="mb-4 p-3 bg-red-900 text-red-100 rounded-md">

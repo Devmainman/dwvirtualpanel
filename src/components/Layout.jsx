@@ -63,7 +63,7 @@ export default function Layout() {
         {/* Main Content Area with modern scrollbar - Outlet for React Router */}
         <main className="flex flex-1 overflow-hidden">
           <div className="w-full h-full overflow-y-auto custom-scrollbar">
-            <style jsx>{`
+            <style>{`
               .custom-scrollbar::-webkit-scrollbar {
                 width: 4px;
               }

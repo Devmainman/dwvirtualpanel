@@ -14,7 +14,7 @@ import {
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
-import { API_BASE_URL } from '../../api/config';
+import { API_BASE_URL, STATIC_BASE_URL } from '../../api/config';
 
 // StatusBadge and VerificationBadge components
 const StatusBadge = ({ status }) => (
@@ -60,9 +60,9 @@ const VerificationBadge = ({ verified, level }) => {
 
 const getAvatarUrl = (trader) => {
   if (trader?.avatar) {
-    return trader.avatar.startsWith('http') 
-      ? trader.avatar 
-      : `${API_BASE_URL}${trader.avatar.startsWith('/') ? trader.avatar : '/' + trader.avatar}`;
+    return /^(https?:|data:)/.test(trader.avatar)
+      ? trader.avatar
+      : `${STATIC_BASE_URL}${trader.avatar.startsWith('/') ? trader.avatar : '/' + trader.avatar}`;
   }
   return null;
 };

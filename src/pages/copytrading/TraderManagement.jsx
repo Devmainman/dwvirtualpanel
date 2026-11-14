@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { API_BASE_URL } from '../../api/config';
+import { API_BASE_URL, STATIC_BASE_URL } from '../../api/config';
 
 const TraderManagement = () => {
   const { token } = useAuth();
@@ -429,7 +429,7 @@ const TraderManagement = () => {
                         <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold overflow-hidden">
                           {trader.avatar ? (
                             <img 
-                              src={trader.avatar.startsWith('http') ? trader.avatar : `${API_BASE_URL}${trader.avatar}`}
+                              src={/^(https?:|data:)/.test(trader.avatar) ? trader.avatar : `${STATIC_BASE_URL}${trader.avatar}`}
                               alt={trader.username}
                               className="h-full w-full object-cover"
                               onError={(e) => {
