@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Public+Sans:wght@400;600&family=Roboto:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap');
 
 /* src/index.css */
 @import "tailwindcss";
@@ -6,12 +6,49 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+   Admin look: calm near-black surfaces, soft rounded cards, one amber accent
+   (the company colour). Done here centrally so page logic is untouched.
+   --------------------------------------------------------------------------- */
+@theme {
+  --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --color-blue-300: #fdba74; --color-blue-400: #fb9b4b; --color-blue-500: #f5852f; --color-blue-600: #e8742a; --color-blue-700: #c75d1f; --color-blue-800: #9a4719; --color-blue-900: #4a2410;
+  --color-indigo-300: #fdba74; --color-indigo-400: #fb9b4b; --color-indigo-500: #f5852f; --color-indigo-600: #e8742a; --color-indigo-700: #c75d1f; --color-indigo-800: #9a4719; --color-indigo-900: #4a2410;
+  --color-gray-300: #d4d4d8; --color-gray-400: #a1a1aa; --color-gray-500: #8b8b94; --color-gray-600: #52525b; --color-gray-700: #2a2b30; --color-gray-800: #1c1d21; --color-gray-900: #131416;
+}
+
 body {
     margin: 0;
-    font-family: 'Public Sans', 'Poppins', 'Roboto', sans-serif;
+    font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    background: #0f1012;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+/* surfaces */
+[class~="bg-[#22282e]"] { background-color: #0f1012; }
+[class~="bg-[#282F36]"], [class~="bg-[#282f36]"] { background-color: #17181b; }
+[class~="bg-[#303943]"] { background-color: #202125; }
+[class~="bg-[#1E232A]"], [class~="bg-[#1E252C]"] { background-color: #131416; }
+[class~="hover:bg-[#303943]"]:hover, [class~="hover:bg-[#3A434D]"]:hover, [class~="hover:bg-[#3A4451]"]:hover { background-color: #26272c; }
+[class~="from-[#2B333C]"] { --tw-gradient-from: #1c1d21; }
+[class~="to-[#24675F]"] { --tw-gradient-to: #3a2a1d; }
+
+/* hairlines instead of hard borders */
+[class~="border-[#303943]"], [class~="border-[#3A4451]"], [class~="border-[#2F3944]"], [class~="border-[#aab8c5]"] { border-color: rgba(255, 255, 255, .07); }
+[class~="border-blue-600/40"] { border-color: rgba(255, 255, 255, .06); }
+
+/* text */
+[class~="text-[#A5AFC4]"], [class~="text-[#aab8c5]"] { color: #a1a1aa; }
+[class~="text-[#8C96A8]"] { color: #8b8b94; }
+
+/* softer cards and fields */
+[class~="bg-[#282F36]"][class*="rounded"] { border-radius: 16px; }
+input, select, textarea { transition: box-shadow .2s ease, border-color .2s ease; }
+::selection { background: rgba(232, 116, 42, .35); }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: #2a2b30; border-radius: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
   
   .auth-container {
     max-width: 400px;

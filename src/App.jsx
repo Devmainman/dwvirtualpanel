@@ -43,6 +43,7 @@ import CurrenciesSettings from './pages/settings/CurrenciesSettings';
 import SiteSettings from './pages/settings/SiteSettings/SiteSettings';
 import WithdrawalSettings from './pages/settings/WithdrawalSettings';
 import TradingMode from './pages/settings/TradingMode';
+import Appearance from './pages/settings/Appearance';
 
 // Copy Trading imports
 import Copytrading from './pages/copytrading/Copytrading';
@@ -87,6 +88,7 @@ function App() {
             <Route path="sitesettings" element={<SiteSettings />} />
             <Route path="withdrawalsettings" element={<WithdrawalSettings />} />
             <Route path="trading-mode" element={<TradingMode />} />
+            <Route path="appearance" element={<Appearance />} />
           </Route>
 
           {/* Copy Trading */}

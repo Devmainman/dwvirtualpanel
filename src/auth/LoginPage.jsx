@@ -1,4 +1,5 @@
 import { useState } from "react";
+import logo from '../assets/logo.svg';
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -42,7 +43,7 @@ export default function LoginPage() {
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="flex justify-center">
-            <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xl">VP</div>
+            <img src={logo} alt="" className="h-11 w-11" />
           </div>
           <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-[#aab8c5]">
             Sign in to your account

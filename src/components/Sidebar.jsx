@@ -1,4 +1,6 @@
 import { useState } from "react";
+import logo from "../assets/logo.svg";
+import useBrand from "../hooks/useBrand";
 import { Link, useLocation } from "react-router-dom";
 import { 
   X, Home, User, MessageSquare, Repeat, Package, 
@@ -18,7 +20,7 @@ const SidebarItem = ({ icon, text, to, hasChildren = false, expanded = false, on
         <button 
           className={`flex items-center rounded-lg justify-between w-55 px-3 py-2 text-sm mb-1 transition-all duration-200 ${
             isActive
-              ? "bg-[#303943] text-white" 
+              ? "bg-blue-600/15 text-white" 
               : "text-[#A5AFC4] hover:bg-[#303943] hover:text-white"
           }`}
           onClick={onClick}
@@ -36,7 +38,7 @@ const SidebarItem = ({ icon, text, to, hasChildren = false, expanded = false, on
           to={to} 
           className={`flex items-center rounded-lg px-3 py-2 text-sm mb-1 transition-all duration-200 ${
             isActive
-              ? "bg-[#303943] text-white font-medium" 
+              ? "bg-blue-600/15 text-white font-medium shadow-[inset_2px_0_0_var(--color-blue-500)]" 
               : "text-[#A5AFC4] hover:bg-[#303943] hover:text-white"
           }`}
         >
@@ -57,7 +59,7 @@ const NestedItem = ({ text, to }) => {
       to={to} 
       className={`flex items-center pl-10 py-1.5 text-xs mb-1 ${
         isActive 
-          ? "text-white font-medium" 
+          ? "text-blue-400 font-medium" 
           : "text-[#A5AFC4] hover:text-white"
       }`}
     >
@@ -67,6 +69,7 @@ const NestedItem = ({ text, to }) => {
 };
 
 export default function Sidebar({ sidebarOpen, toggleSidebar }) {
+  const brand = useBrand();
   const [expandedMenu, setExpandedMenu] = useState(null);
 
   const toggleMenu = (menuName) => {
@@ -88,10 +91,11 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
       {/* Header */}
       <div className="flex items-center justify-between p-3 h-[65px] flex-shrink-0">
         <div className="flex items-center">
-          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mr-2">
-            <div className="w-4 h-4 bg-indigo-600 rounded-sm"></div>
+          <img src={logo} alt="" className="w-8 h-8 mr-2.5" />
+          <div className="leading-tight">
+            <span className="block text-[15px] font-semibold text-white tracking-tight">{brand || "Admin"}</span>
+            <span className="block text-[11px] text-[#A5AFC4]">Admin console</span>
           </div>
-          <span className="text-lg font-bold text-white">VisualPanel</span>
         </div>
         <button className="text-white lg:hidden" onClick={toggleSidebar}>
           <X size={18} />
@@ -353,6 +357,7 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
               <NestedItem text="Withdrawal Settings" to="/settings/withdrawalsettings" />
               <NestedItem text="Currency Settings" to="/settings/currency" />
               <NestedItem text="Site Settings" to="/settings/sitesettings" />
+              <NestedItem text="Appearance" to="/settings/appearance" />
               <NestedItem text="Trading Mode" to="/settings/trading-mode" />
 
             </div>
