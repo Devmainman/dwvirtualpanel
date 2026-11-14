@@ -1,7 +1,7 @@
 // Cold storage vaults, debit cards and connected wallets.
 import { useState } from 'react';
 import { Lock, CreditCard, Wallet, Check, X, Snowflake, Sun, Unlock, ShieldAlert, Trash2, Copy } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { toast } from '../lib/toast';
 import {
   Page, Card, Button, Field, Tabs, Table, Pager, Badge, Modal, inputCls, Loading, ErrorBox, Empty, SearchBox,
   useApi, useLoad, useAction, money, date, shortDate, who, confirmAction

@@ -16,7 +16,7 @@ const UserRow = ({
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [messageContent, setMessageContent] = useState('');
   const [messageSubject, setMessageSubject] = useState('');
-  const [sendEmail, setSendEmail] = useState(false); // ✅ toggle state
+  const [sendEmail, setSendEmail] = useState(false); // toggle state
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -29,7 +29,7 @@ const UserRow = ({
       await axios.post(`${API_BASE_URL}/admin/users/${user._id}/send-message`, {
         subject: messageSubject || 'Message from Support Team',
         message: messageContent,
-        sendEmail: sendEmail // ✅ Send this to backend
+        sendEmail: sendEmail // Send this to backend
       }, {
         headers: {
           Authorization: `Bearer ${token}`

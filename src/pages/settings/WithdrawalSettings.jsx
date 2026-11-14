@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, ChevronRight, Eye } from 'lucide-react';
 import axios from 'axios';
-import { toast } from 'react-toastify';
+import { toast } from '../../lib/toast';
 import { API_BASE_URL, STATIC_BASE_URL } from '../../api/config';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -677,7 +677,7 @@ const WithdrawalSettings = () => {
               </span>
               <input 
                 type="number"
-                className={`${styles.input} pl-7`} // 👈 adjust padding for icon
+                className={`${styles.input} pl-7`} // adjust padding for icon
                 min="0"
                 value={formData.minAmount}
                 onChange={(e) => setFormData({ ...formData, minAmount: e.target.value })}
@@ -697,7 +697,7 @@ const WithdrawalSettings = () => {
                 </span>
                 <input 
                   type="number"
-                  className={`${styles.input} pl-7`} // 👈 adjust padding for icon
+                  className={`${styles.input} pl-7`} // adjust padding for icon
                   min="0"
                   value={formData.maxAmount}
                   onChange={(e) => setFormData({ ...formData, maxAmount: e.target.value })}

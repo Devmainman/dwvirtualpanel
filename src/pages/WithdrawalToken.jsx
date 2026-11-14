@@ -38,7 +38,7 @@ export default function WithdrawalToken() {
   
         setTokens(parsedTokens);
   
-        // ✅ Ensure only the array is stored
+        // Ensure only the array is stored
         setUsers(Array.isArray(usersData.users) ? usersData.users : []);
         console.log('usersData:', usersData);
   

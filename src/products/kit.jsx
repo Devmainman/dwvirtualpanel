@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { X, Loader2, Inbox, RefreshCw, Search } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { toast } from '../lib/toast';
 import { API_BASE_URL } from '../api/config';
 import { useAuth } from '../context/AuthContext';
 

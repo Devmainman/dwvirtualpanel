@@ -35,7 +35,7 @@ export default function Withdrawal() {
           paymentMethod: w.method.title,
           amount: `${w.amount} ${w.user.currency}`,
           status: w.status,
-          details: w.details, // ✅ keep full detail array
+          details: w.details, // keep full detail array
           withdrawalToken: w._id,
           receipt: w.receipt || ''
         }));        

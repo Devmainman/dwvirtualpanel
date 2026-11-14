@@ -1,6 +1,4 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
 import Dashboard from './pages/Dashboard';
 import ManageUsers from './pages/ManageUsers/ManageUsers';
@@ -69,7 +67,6 @@ import { MarketsAdmin, PackageTradesAdmin, MiningCatalogAdmin, NotificationsAdmi
 function App() {
   return (
     <>
-      <ToastContainer />
       <Routes>
         {/* Public route */}
         <Route path="/admin/login" element={<LoginPage />} />

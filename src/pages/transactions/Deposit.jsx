@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, Search, Check, X, Trash2, Clock, AlertCircle, CheckCircle } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { toast } from '../../lib/toast';
 import axios from 'axios';
 import { API_BASE_URL } from '../../api/config';
 import { STATIC_BASE_URL } from '../../api/config';

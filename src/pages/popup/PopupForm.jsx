@@ -21,7 +21,7 @@ const PopupFormManager = () => {
   );
 
   const newFormTemplate = {
-    icon: '📝',
+    icon: '',
     title: 'New Form',
     description: '',
     status: 'Draft',

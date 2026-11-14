@@ -3,7 +3,7 @@ import logo from '../assets/logo.svg';
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast } from "../lib/toast";
 import { API_BASE_URL } from "../api/config";
 import { useAuth } from "../context/AuthContext"; // Import useAuth
 

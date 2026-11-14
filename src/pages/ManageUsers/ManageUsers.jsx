@@ -4,7 +4,7 @@ import {
   Users, UserCheck, UserX, Wifi, UserPlus, Wallet, Search, X, Mail, Phone, ShieldCheck, MapPin, Fingerprint,
   KeyRound, LogIn, Trash2, Send, Package, Activity, ArrowDownLeft, ArrowUpRight, Lock, Unlock, Ban, CheckCircle2, Bell
 } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { toast } from '../../lib/toast';
 import {
   Page, Card, Stat, Button, Field, Toggle, Tabs, Table, Pager, Badge, Modal, inputCls, Loading, ErrorBox, Empty,
   useApi, useLoad, useAction, money, num, date, shortDate, confirmAction

@@ -1,4 +1,4 @@
-// ✅ table.js
+// table.js
 export { Table } from "./Table";
 export { TableHeader } from "./TableHeader";
 export { TableBody } from "./TableBody";

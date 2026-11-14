@@ -1,7 +1,7 @@
 // Support inbox: every user ticket, the conversation, reply, close / reopen.
 import { useEffect, useRef, useState } from 'react';
 import { LifeBuoy, Send, Paperclip, X, Lock, Unlock, RefreshCw } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { toast } from '../lib/toast';
 import { STATIC_BASE_URL } from '../api/config';
 import { Page, Card, Button, Badge, Loading, ErrorBox, Empty, SearchBox, useApi, useLoad, useAction, date } from './kit';
 

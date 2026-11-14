@@ -9,7 +9,7 @@ import {
   AlertCircle, Save, X, ChevronDown, MoreVertical
 } from 'lucide-react';
 import axios from 'axios';
-import { toast } from 'react-toastify';
+import { toast } from '../../lib/toast';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../api/config';
 

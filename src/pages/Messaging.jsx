@@ -36,7 +36,7 @@ const Messaging = ({ userId }) => {
         
         
 
-        // ✅ CORRECT WAY
+        // CORRECT WAY
         const response = await axios.get(`${API_BASE_URL}/messages/sent`, {
           params,
           headers: {
