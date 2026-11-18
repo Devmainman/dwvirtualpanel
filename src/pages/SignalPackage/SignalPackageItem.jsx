@@ -8,7 +8,7 @@ const SignalPackageItem = ({ pkg, handleEditPackage, handleDeletePackage }) => {
 
       {/* Strength */}
       <p className="text-sm text-green-400">
-        Signal Strength: +{pkg.strength}%
+        Signal Strength: {pkg.strengthLabel || `+${pkg.strength}%`}
       </p>
 
       {/* Amount */}

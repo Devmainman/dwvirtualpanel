@@ -45,13 +45,14 @@ const SignalPackage = () => {
   /* ================= CREATE / UPDATE ================= */
 
   const handleAddPackage = async () => {
+    setError(null);
     try {
       const formData = new FormData();
 
       formData.append('name', newPackage.name);
-      formData.append('strength', Number(newPackage.strength));
-      formData.append('amount', Number(newPackage.amount));
-      formData.append('benefits', JSON.stringify(newPackage.benefits));
+      formData.append('strength', String(newPackage.strength).trim());
+      formData.append('amount', String(newPackage.amount).trim());
+      formData.append('benefits', JSON.stringify(newPackage.benefits.map((b) => b.trim()).filter(Boolean)));
 
       if (newPackage.iconFile) {
         formData.append('icon', newPackage.iconFile);
@@ -93,9 +94,9 @@ const SignalPackage = () => {
   const handleEditPackage = (pkg) => {
     setNewPackage({
     name: pkg.name,
-    strength: pkg.strength?.toString() || '',
-    amount: pkg.amount.toString(),
-    benefits: pkg.benefits?.length ? [...pkg.benefits, ''] : [''],
+    strength: pkg.strengthLabel || (pkg.strength ?? '').toString(),
+    amount: (pkg.amount ?? '').toString(),
+    benefits: pkg.benefits?.filter(Boolean).length ? pkg.benefits.filter(Boolean) : [''],
     icon: pkg.icon || ''
   });
 
@@ -121,7 +122,7 @@ const SignalPackage = () => {
 
       <SignalPackageHeader packages={packages} />
 
-      {error && <div className="mb-4 p-3 bg-red-900 text-red-100 rounded-md">{error}</div>}
+      {error && !showCreateForm && <div className="mb-4 p-3 bg-red-900 text-red-100 rounded-md">{error}</div>}
 
       {showCreateForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -133,6 +134,7 @@ const SignalPackage = () => {
               resetForm={resetForm}
               editingId={editingId}
               isLoading={isLoading}
+              formError={error}
             />
           </div>
         </div>

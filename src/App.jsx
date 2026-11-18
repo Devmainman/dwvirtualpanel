@@ -62,6 +62,9 @@ import RealEstateAdmin from './products/RealEstateAdmin';
 import StakingAdmin from './products/StakingAdmin';
 import StocksAdmin from './products/StocksAdmin';
 import { ColdStorageAdmin, CardsAdmin, WalletsAdmin } from './products/VaultsCardsWallets';
+import { CardSettings, CardInvoices } from './products/CardSystem';
+import { SmartTraderAdmin, BotInvoices } from './products/SmartTraderAdmin';
+import { BlogAdmin } from './products/BlogAdmin';
 import { MarketsAdmin, PackageTradesAdmin, MiningCatalogAdmin, NotificationsAdmin } from './products/TradingOps';
 
 function App() {
@@ -153,6 +156,10 @@ function App() {
             <Route path="purchasedcards" element={<CardsAdmin />} />
           </Route>
 
+          <Route path="card-settings" element={<CardSettings />} />
+          <Route path="ai-smart-trader" element={<SmartTraderAdmin />} />
+          <Route path="blog" element={<BlogAdmin />} />
+          <Route path="card-invoices" element={<CardInvoices />} />
           <Route path="accounts-package" element={<AccountsPackage />} />
           <Route path="signal-packages" element={<SignalPackage />} />
 
@@ -169,9 +176,9 @@ function App() {
             <Route path="withdrawal" element={<Withdrawal />} />
             <Route path="upgrade-invoice" element={<UpgradeInvoice />} />
             <Route path="other-invoice" element={<OtherInvoice />} />
-            <Route path="bot-invoice" element={<BotInvoice />} />
+            <Route path="bot-invoice" element={<BotInvoices />} />
             <Route path="signal-invoice" element={<SignalInvoice />} />
-            <Route path="card-invoice" element={<CardInvoice />} />
+            <Route path="card-invoice" element={<CardInvoices />} />
           </Route>
 
           <Route path="assignments">

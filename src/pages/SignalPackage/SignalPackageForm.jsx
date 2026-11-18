@@ -6,7 +6,8 @@ const SignalPackageForm = ({
   setNewPackage,
   handleAddPackage,
   resetForm,
-  editingId
+  editingId,
+  formError
 }) => {
   const handleBenefitChange = (index, value) => {
     const updated = [...newPackage.benefits];
@@ -43,21 +44,20 @@ const SignalPackageForm = ({
         onChange={(e) => setNewPackage({ ...newPackage, name: e.target.value })}
       />
 
-      {/* Amount */}
+      {/* Amount: free text is fine ("150", "\,500"); the number in it is the price. */}
       <input
-        type="number"
-        placeholder="Price"
+        type="text"
+        inputMode="decimal"
+        placeholder="Price, e.g. 150"
         className="w-full mb-3 bg-[#303943] p-2 rounded"
         value={newPackage.amount}
         onChange={(e) => setNewPackage({ ...newPackage, amount: e.target.value })}
       />
 
-      {/* Strength */}
+      {/* Strength: "20" or "20 +"; users see exactly what is typed, the number drives the logic. */}
       <input
-        type="number"
-        min="0"
-        max="100"
-        placeholder="Signal Strength (%)"
+        type="text"
+        placeholder="Signal strength, e.g. 20 or 20 +"
         className="w-full mb-3 bg-[#303943] p-2 rounded"
         value={newPackage.strength}
         onChange={(e) => setNewPackage({ ...newPackage, strength: e.target.value })}
@@ -80,6 +80,8 @@ const SignalPackageForm = ({
       <button onClick={addBenefitField} className="mb-4 flex items-center text-blue-400">
         <Plus size={16} className="mr-1" /> Add Benefit
       </button>
+
+      {formError && <p className="mb-3 text-sm text-red-400">{formError}</p>}
 
       <div className="flex justify-end gap-2">
         <button onClick={resetForm} className="bg-gray-600 px-4 py-2 rounded">Cancel</button>

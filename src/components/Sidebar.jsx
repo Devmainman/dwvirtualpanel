@@ -7,7 +7,7 @@ import {
   AlertCircle, FileText, DollarSign, Clipboard,
   LifeBuoy, Settings, ChevronDown, ChevronRight, 
   CreditCard, CheckCircle, MapPin, UserCheck, History, Image,
-  Cpu, Drill, Zap, Award, Users, BarChart, Copy, Bell, LayoutGrid,
+  Cpu, Drill, Zap, Award, Users, BarChart, Copy, Bell, LayoutGrid, Newspaper,
 } from "lucide-react";
 
 const SidebarItem = ({ icon, text, to, hasChildren = false, expanded = false, onClick }) => {
@@ -154,7 +154,9 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
               <NestedItem text="Staking" to="/products/staking" />
               <NestedItem text="Stocks" to="/products/stocks" />
               <NestedItem text="Cold Storage" to="/products/cold-storage" />
-              <NestedItem text="Cards" to="/products/cards" />
+              <NestedItem text="Card Settings" to="/card-settings" />
+              <NestedItem text="AI Smart Trader" to="/ai-smart-trader" />
+              <NestedItem text="Cards (old system)" to="/products/cards" />
               <NestedItem text="Connected Wallets" to="/products/wallets" />
             </div>
           )}
@@ -272,7 +274,7 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
               <NestedItem text="Other Invoice" to="/transactions/other-invoice" />
               <NestedItem text="Bot Invoice" to="/transactions/bot-invoice" />
               <NestedItem text="Signal Invoice" to="/transactions/signal-invoice" />
-              {/* <NestedItem text="Card Invoice" to="/transactions/card-invoice" /> */}
+              <NestedItem text="Card Invoices" to="/card-invoices" />
             </div>
           )}
           
@@ -292,10 +294,16 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
             </div>
           )}
           
-          <SidebarItem 
-            icon={<DollarSign size={16} />} 
-            text="Withdrawal Token" 
+          <SidebarItem
+            icon={<DollarSign size={16} />}
+            text="Withdrawal Token"
             to="/withdrawal-token"
+          />
+
+          <SidebarItem
+            icon={<Newspaper size={16} />}
+            text="Blog"
+            to="/blog"
           />
           
           <SidebarItem 
