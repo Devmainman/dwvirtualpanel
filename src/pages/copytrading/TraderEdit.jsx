@@ -108,11 +108,11 @@ const TraderEdit = () => {
     preferredMarkets: response.data.trader?.preferredMarkets || []
   }));
       } else {
-        toast.error(response?.data?.error || 'Failed to load trader details');
+        toast.error(response?.data?.message || response?.data?.error || 'Failed to load trader details');
       }
     } catch (error) {
       console.error('Error fetching trader details:', error);
-      toast.error('Failed to load trader details');
+      toast.error(error.response?.data?.message || 'Failed to load trader details');
     } finally {
       setLoading(false);
     }
@@ -205,11 +205,11 @@ const fetchPerformanceStats = async () => {
         toast.success('Trader details updated successfully');
         navigate('/copy-trading/trader-management');
       } else {
-        toast.error(response?.data?.error || 'Failed to update trader');
+        toast.error(response?.data?.message || response?.data?.error || 'Failed to update trader');
       }
     } catch (error) {
       console.error('Error updating trader:', error);
-      toast.error('Failed to update trader details');
+      toast.error(error.response?.data?.message || 'Failed to update trader details');
     } finally {
       setSaving(false);
     }
@@ -239,7 +239,7 @@ const fetchPerformanceStats = async () => {
 //         setConfirmPassword('');
 //         setShowPassword(false);
 //       } else {
-//         toast.error(response?.data?.error || 'Failed to reset password');
+//         toast.error(response?.data?.message || response?.data?.error || 'Failed to reset password');
 //       }
 //     } catch (error) {
 //       console.error('Error resetting password:', error);
@@ -259,7 +259,7 @@ const fetchPerformanceStats = async () => {
 //         toast.success('Commission rate updated successfully');
 //         setShowCommissionModal(false);
 //       } else {
-//         toast.error(response?.data?.error || 'Failed to update commission');
+//         toast.error(response?.data?.message || response?.data?.error || 'Failed to update commission');
 //       }
 //     } catch (error) {
 //       console.error('Error updating commission:', error);
@@ -279,11 +279,11 @@ const fetchPerformanceStats = async () => {
         setTrader(prev => ({ ...prev, isActive: !prev.isActive }));
         toast.success(`Trader ${!trader.isActive ? 'activated' : 'deactivated'} successfully`);
       } else {
-        toast.error(response?.data?.error || 'Failed to update status');
+        toast.error(response?.data?.message || response?.data?.error || 'Failed to update status');
       }
     } catch (error) {
       console.error('Error toggling activation:', error);
-      toast.error('Failed to update trader status');
+      toast.error(error.response?.data?.message || 'Failed to update trader status');
     }
   };
 
@@ -299,11 +299,11 @@ const fetchPerformanceStats = async () => {
         setTrader(prev => ({ ...prev, verified: !prev.verified }));
         toast.success(`Trader ${!trader.verified ? 'verified' : 'unverified'} successfully`);
       } else {
-        toast.error(response?.data?.error || 'Failed to update verification');
+        toast.error(response?.data?.message || response?.data?.error || 'Failed to update verification');
       }
     } catch (error) {
       console.error('Error toggling verification:', error);
-      toast.error('Failed to update verification status');
+      toast.error(error.response?.data?.message || 'Failed to update verification status');
     }
   };
 

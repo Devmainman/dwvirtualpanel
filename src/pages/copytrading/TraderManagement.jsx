@@ -76,8 +76,8 @@ const TraderManagement = () => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `${API_BASE_URL}/copy-trading/traders`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${API_BASE_URL}/admin/copy-trading/traders`,
+        { params: { limit: 100 }, headers: { Authorization: `Bearer ${token}` } }
       );
       
       if (response?.data?.success) {
@@ -88,7 +88,7 @@ const TraderManagement = () => {
         const activeTraders = tradersData.filter(t => t.isActive).length;
         const verifiedTraders = tradersData.filter(t => t.verified).length;
         const totalOpenTrades = tradersData.reduce((sum, trader) => {
-          return sum + (trader.openTrades?.filter(t => t.status === 'open').length || 0);
+          return sum + (trader.stats?.openTrades || 0);
         }, 0);
         
         setStats({
@@ -100,7 +100,7 @@ const TraderManagement = () => {
       }
     } catch (error) {
       console.error('Error fetching traders:', error);
-      toast.error('Failed to load traders');
+      toast.error(error.response?.data?.message || 'Failed to load traders');
     } finally {
       setLoading(false);
     }
@@ -134,11 +134,11 @@ const TraderManagement = () => {
         });
         fetchTraders();
       } else {
-        toast.error(response?.data?.error || 'Failed to add trade');
+        toast.error(response?.data?.message || 'Failed to add trade');
       }
     } catch (error) {
       console.error('Error adding trade:', error);
-      toast.error('Error adding trade');
+      toast.error(error.response?.data?.message || 'Error adding trade');
     }
   };
 
@@ -152,15 +152,15 @@ const TraderManagement = () => {
       );
 
       if (response?.data?.success) {
-        toast.success(`Updated prices for ${response.data.updatedTraders} traders`);
+        toast.success(response.data.message || 'Prices updated');
         setShowUpdatePricesModal(false);
         fetchTraders();
       } else {
-        toast.error(response?.data?.error || 'Failed to update prices');
+        toast.error(response?.data?.message || 'Failed to update prices');
       }
     } catch (error) {
       console.error('Error updating prices:', error);
-      toast.error('Error updating prices');
+      toast.error(error.response?.data?.message || 'Error updating prices');
     }
   };
 
@@ -208,7 +208,7 @@ const TraderManagement = () => {
       case 'profit':
         return (b.performance?.netProfit || 0) - (a.performance?.netProfit || 0);
       case 'copiers':
-        return (b.socialStats?.activeCopiers || 0) - (a.socialStats?.activeCopiers || 0);
+        return (b.stats?.activeCopies || 0) - (a.stats?.activeCopies || 0);
       case 'winrate':
         return (b.performance?.winRate || 0) - (a.performance?.winRate || 0);
       default:
@@ -301,7 +301,7 @@ const TraderManagement = () => {
             <div>
               <p className="text-indigo-100 text-sm">Active Copiers</p>
               <h3 className="text-white text-2xl font-bold mt-1">
-                {traders.reduce((sum, t) => sum + (t.socialStats?.activeCopiers || 0), 0)}
+                {traders.reduce((sum, t) => sum + (t.stats?.activeCopies || 0), 0)}
               </h3>
               <p className="text-green-400 text-xs mt-1">Copying traders</p>
             </div>
@@ -476,7 +476,7 @@ const TraderManagement = () => {
                       <div className="flex items-center gap-2">
                         <Target className="h-4 w-4 text-blue-400" />
                         <span className="text-white font-medium">
-                          {trader.openTrades?.filter(t => t.status === 'open').length || 0}
+                          {trader.stats?.openTrades || 0}
                         </span>
                         <span className="text-sm text-gray-400">open trades</span>
                       </div>
@@ -495,7 +495,7 @@ const TraderManagement = () => {
                         </span>
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
-                        {trader.socialStats?.activeCopiers || 0} active copiers
+                        {trader.stats?.activeCopies ?? trader.socialStats?.activeCopiers ?? 0} active copiers
                       </div>
                     </td>
                     

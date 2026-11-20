@@ -192,7 +192,7 @@ export default function Copytrading() {
       }
     } catch (error) {
       console.error('Error fetching traders:', error);
-      toast.error(error.response?.data?.error || 'Failed to fetch traders');
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch traders');
     } finally {
       setLoading(false);
     }
@@ -246,7 +246,7 @@ export default function Copytrading() {
         fetchTraders();
       }
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to create trader');
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to create trader');
     }
   };
 
@@ -396,7 +396,7 @@ const handleExecuteAction = async () => {
     console.error('Error executing action:', error);
     console.error('Error response:', error.response?.data);
     console.error('Error status:', error.response?.status);
-    toast.error(error.response?.data?.error || 'Failed to execute action');
+    toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to execute action');
   }
 };
 
@@ -1179,7 +1179,7 @@ const handleExecuteAction = async () => {
                 toast.success('Avatar updated successfully');
               }
             } catch (error) {
-              toast.error(error.response?.data?.error || 'Failed to upload avatar');
+              toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to upload avatar');
             }
           }
         }}

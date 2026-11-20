@@ -129,7 +129,7 @@ console.log('Final API_BASE_URL:', API_BASE_URL);
       }
     } catch (error) {
       console.error('Error fetching trader trades:', error);
-      toast.error(error.response?.data?.error || 'Failed to fetch trader trades');
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch trader trades');
     } finally {
       setLoading(false);
     }
@@ -153,7 +153,7 @@ console.log('Final API_BASE_URL:', API_BASE_URL);
       }
     } catch (error) {
       console.error('Error adding trade:', error);
-      toast.error(error.response?.data?.error || 'Failed to add trade');
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to add trade');
     } finally {
       setActionLoading(false);
     }
@@ -177,7 +177,7 @@ console.log('Final API_BASE_URL:', API_BASE_URL);
       }
     } catch (error) {
       console.error('Error updating trade:', error);
-      toast.error(error.response?.data?.error || 'Failed to update trade');
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to update trade');
     } finally {
       setActionLoading(false);
     }
@@ -202,7 +202,7 @@ console.log('Final API_BASE_URL:', API_BASE_URL);
       }
     } catch (error) {
       console.error('Error deleting trade:', error);
-      toast.error(error.response?.data?.error || 'Failed to delete trade');
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to delete trade');
     } finally {
       setActionLoading(false);
     }
@@ -247,7 +247,7 @@ console.log('Final API_BASE_URL:', API_BASE_URL);
       }
     } catch (error) {
       console.error('Error bulk importing:', error);
-      toast.error(error.response?.data?.error || 'Failed to import trades');
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to import trades');
     } finally {
       setActionLoading(false);
     }

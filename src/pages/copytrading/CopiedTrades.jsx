@@ -147,7 +147,7 @@ const [adjustLoading, setAdjustLoading] = useState(false);
       }
     } catch (error) {
       console.error('Error fetching copied trades:', error);
-      toast.error(error.response?.data?.error || 'Failed to fetch copied trades');
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch copied trades');
     } finally {
       setLoading(false);
     }
@@ -215,7 +215,7 @@ const [adjustLoading, setAdjustLoading] = useState(false);
     }
   } catch (error) {
     console.error("Adjust profit error:", error);
-    toast.error(error.response?.data?.error || "Adjustment failed");
+    toast.error(error.response?.data?.message || error.response?.data?.error || "Adjustment failed");
   } finally {
     setAdjustLoading(false);
   }
@@ -287,7 +287,7 @@ const [adjustLoading, setAdjustLoading] = useState(false);
       }
     } catch (error) {
       console.error('Error fetching trade details:', error);
-      toast.error(error.response?.data?.error || 'Failed to fetch trade details');
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch trade details');
     }
   };
 
