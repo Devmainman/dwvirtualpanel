@@ -1,7 +1,7 @@
 // Live-market positions, trading-package trades, mining catalog,
 // notification broadcast and exchange-rate sync.
 import { useEffect, useState } from 'react';
-import { Activity, Bot, Cpu, Bell, RefreshCw, Send, Globe, Zap, ArrowRight } from 'lucide-react';
+import { Activity, Bot, Cpu, Bell, RefreshCw, Send, Globe, Zap, ArrowRight, Plus } from 'lucide-react';
 import {
   Page, Card, Stat, Button, Field, Toggle, Tabs, Table, Pager, Badge, Modal, inputCls, Loading, ErrorBox, Empty,
   useApi, useLoad, useAction, money, num, date, who, confirmAction
@@ -108,59 +108,134 @@ export function PackageTradesAdmin() {
 
 /* ------------------------------------------------------------ mining catalog */
 
+const MACHINE_TYPES = ['CPU', 'GPU', 'ASIC', 'FPGA'];
+const BOOSTER_TYPES = [['hash_rate', 'Hash rate'], ['energy', 'Energy'], ['rewards', 'Rewards']];
+const EMPTY_ITEM = {
+  equipment: { name: '', type: 'GPU', hashRate: '', powerConsumption: '', price: '', dailyYieldPercent: '' },
+  boosters: { name: '', type: 'hash_rate', multiplier: '', duration: '', price: '', description: '' }
+};
+const pickFields = (kind, f) => (kind === 'equipment'
+  ? { name: f.name, type: f.type, hashRate: f.hashRate, powerConsumption: f.powerConsumption, price: f.price, dailyYieldPercent: f.dailyYieldPercent }
+  : { name: f.name, type: f.type, multiplier: f.multiplier, duration: f.duration, price: f.price, description: f.description });
+
+/** The editable fields of one machine or booster. */
+function CatalogFields({ kind, f, set, currency }) {
+  return kind === 'equipment' ? (
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+      <Field label="Name"><input className={inputCls} value={f.name} onChange={set('name')} placeholder="e.g. Antminer S21" /></Field>
+      <Field label="Type"><select className={inputCls} value={f.type} onChange={set('type')}>{MACHINE_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
+      <Field label={`Price (${currency})`}><input type="number" className={inputCls} value={f.price} onChange={set('price')} /></Field>
+      <Field label="Hash rate (MH/s)"><input type="number" className={inputCls} value={f.hashRate} onChange={set('hashRate')} /></Field>
+      <Field label="Power (W)"><input type="number" className={inputCls} value={f.powerConsumption} onChange={set('powerConsumption')} /></Field>
+      <Field label="Daily yield %" hint={f.price && f.dailyYieldPercent ? `About ${money((Number(f.price) * Number(f.dailyYieldPercent)) / 100, currency)} per day` : 'Share of the price earned per day of mining'}>
+        <input type="number" step="0.01" className={inputCls} value={f.dailyYieldPercent} onChange={set('dailyYieldPercent')} />
+      </Field>
+    </div>
+  ) : (
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+      <Field label="Name"><input className={inputCls} value={f.name} onChange={set('name')} placeholder="e.g. Turbo Hour" /></Field>
+      <Field label="Type"><select className={inputCls} value={f.type} onChange={set('type')}>{BOOSTER_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>
+      <Field label={`Price (${currency})`}><input type="number" className={inputCls} value={f.price} onChange={set('price')} /></Field>
+      <Field label="Multiplier ×" hint="1.5 = +50% earnings"><input type="number" step="0.1" className={inputCls} value={f.multiplier} onChange={set('multiplier')} /></Field>
+      <Field label="Duration (seconds)" hint={f.duration ? `${Math.round(Number(f.duration) / 60)} minutes` : '3600 = 1 hour'}><input type="number" className={inputCls} value={f.duration} onChange={set('duration')} /></Field>
+      <Field label="Description (users see this)"><input className={inputCls} value={f.description || ''} onChange={set('description')} placeholder="+50% earnings for 1 hour" /></Field>
+    </div>
+  );
+}
+
 function CatalogRow({ kind, id, item, currency, onSaved }) {
   const api = useApi();
   const { busy, run } = useAction();
+  const [open, setOpen] = useState(false);
   const [f, setF] = useState(item);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   useEffect(() => setF(item), [item]);
-  const dirty = JSON.stringify(f) !== JSON.stringify(item);
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
-  const save = (extra = {}) => run(id, () => api.put(`/admin/ops/mining/catalog/${kind}/${id}`, kind === 'equipment'
-    ? { price: f.price, dailyYieldPercent: f.dailyYieldPercent, ...extra }
-    : { price: f.price, multiplier: f.multiplier, duration: f.duration, ...extra }).then(onSaved), 'Saved');
+  const dirty = JSON.stringify(pickFields(kind, f)) !== JSON.stringify(pickFields(kind, item));
+  const save = (body, msg) => run(id, () => api.put(`/admin/ops/mining/catalog/${kind}/${id}`, body), msg).then((r) => { if (r) { onSaved(); setOpen(false); } });
+  const remove = () => run(`rm-${id}`, () => api.delete(`/admin/ops/mining/catalog/${kind}/${id}`), (r) => r.data.message).then((r) => { if (r) { setConfirmRemove(false); onSaved(); } });
   return (
-    <div className={`grid grid-cols-2 md:grid-cols-[1.6fr_1fr_1fr_1fr_auto] gap-2 items-end py-3 border-b border-[#2F3944]/60 last:border-0 ${item.enabled === false ? 'opacity-60' : ''}`}>
-      <div className="col-span-2 md:col-span-1">
-        <p className="text-sm text-white font-medium">{item.name}</p>
-        <p className="text-[10px] text-[#6B7280]">{kind === 'equipment' ? `${item.type} · ${item.hashRate} MH/s` : item.description}</p>
+    <div className={`py-3 border-b border-[#2F3944]/60 last:border-0 ${item.enabled === false ? 'opacity-60' : ''}`}>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex-1 min-w-[180px]">
+          <p className="text-sm text-white font-medium">{item.name}</p>
+          <p className="text-[10px] text-[#6B7280]">
+            {kind === 'equipment'
+              ? `${item.type} · ${item.hashRate} MH/s · ${item.powerConsumption} W · ${item.dailyYieldPercent}% a day (≈ ${money((item.price * item.dailyYieldPercent) / 100, currency)})`
+              : `${item.multiplier}× for ${Math.round(item.duration / 60)} min · ${item.description || ''}`}
+          </p>
+        </div>
+        <p className="text-sm text-white tabular-nums">{money(item.price, currency)}</p>
+        <Toggle checked={item.enabled !== false} disabled={busy === id} onChange={(v) => save({ enabled: v }, v ? 'Shown in the shop' : 'Hidden from the shop')} label={item.enabled === false ? 'Hidden' : 'In shop'} />
+        <Button size="sm" variant="secondary" onClick={() => setOpen((o) => !o)}>{open ? 'Close' : 'Edit'}</Button>
+        <Button size="sm" variant="danger" onClick={() => setConfirmRemove(true)}>Remove</Button>
       </div>
-      <Field label={`Price (${currency})`}><input type="number" className={inputCls} value={f.price} onChange={set('price')} /></Field>
-      {kind === 'equipment' ? (
-        <>
-          <Field label="Daily yield %"><input type="number" step="0.01" className={inputCls} value={f.dailyYieldPercent} onChange={set('dailyYieldPercent')} /></Field>
-          <div className="text-[11px] text-[#8C96A8] pb-2">≈ {money((Number(f.price) * Number(f.dailyYieldPercent)) / 100, currency)}/day</div>
-        </>
-      ) : (
-        <>
-          <Field label="Multiplier ×"><input type="number" step="0.1" className={inputCls} value={f.multiplier} onChange={set('multiplier')} /></Field>
-          <Field label="Duration (sec)"><input type="number" className={inputCls} value={f.duration} onChange={set('duration')} /></Field>
-        </>
+      {open && (
+        <div className="mt-3 rounded-xl border border-[#2F3944] p-3 space-y-2">
+          <CatalogFields kind={kind} f={f} set={set} currency={currency} />
+          <div className="flex gap-2 justify-end">
+            <Button size="sm" variant="secondary" disabled={busy === id} onClick={() => { setF(item); setOpen(false); }}>Cancel</Button>
+            <Button size="sm" disabled={!dirty} busy={busy === id} onClick={() => save(pickFields(kind, f), 'Saved')}>Save changes</Button>
+          </div>
+        </div>
       )}
-      <div className="flex gap-1.5 items-center col-span-2 md:col-span-1 justify-end">
-        <Toggle checked={item.enabled !== false} onChange={(v) => save({ enabled: v })} label={item.enabled === false ? 'Hidden' : 'In shop'} />
-        <Button size="sm" disabled={!dirty} busy={busy === id} onClick={() => save()}>Save</Button>
-      </div>
+      {confirmRemove && (
+        <Modal open title={`Remove ${item.name}?`} onClose={() => setConfirmRemove(false)}
+          footer={<><Button variant="secondary" disabled={busy === `rm-${id}`} onClick={() => setConfirmRemove(false)}>Cancel</Button><Button variant="danger" busy={busy === `rm-${id}`} onClick={remove}>Remove from shop</Button></>}>
+          <p className="text-xs text-[#A5AFC4]">Users can no longer buy it. {kind === 'equipment' ? 'Machines users already own keep earning at the yield they were bought with.' : 'Boosters already running finish normally.'}</p>
+          <p className="text-[11px] text-[#6B7280] mt-2">To take it out only for a while, switch it to Hidden instead.</p>
+        </Modal>
+      )}
     </div>
+  );
+}
+
+function AddCatalogItem({ kind, currency, onClose, onSaved }) {
+  const api = useApi();
+  const { busy, run } = useAction();
+  const [f, setF] = useState(EMPTY_ITEM[kind]);
+  const [error, setError] = useState('');
+  const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
+  const create = () => {
+    setError('');
+    const need = kind === 'equipment' ? ['name', 'price', 'hashRate', 'powerConsumption', 'dailyYieldPercent'] : ['name', 'price', 'multiplier', 'duration'];
+    if (need.some((k) => String(f[k]).trim() === '')) return setError('Fill in every field');
+    run('add', () => api.post(`/admin/ops/mining/catalog/${kind}`, pickFields(kind, f)), (r) => r.data.message).then((r) => { if (r) { onSaved(); onClose(); } });
+  };
+  return (
+    <Modal open wide title={kind === 'equipment' ? 'Add a machine' : 'Add a booster'} onClose={onClose}
+      footer={<><Button variant="secondary" disabled={busy === 'add'} onClick={onClose}>Cancel</Button><Button busy={busy === 'add'} onClick={create}>{kind === 'equipment' ? 'Add machine' : 'Add booster'}</Button></>}>
+      <CatalogFields kind={kind} f={f} set={set} currency={currency} />
+      {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
+      <p className="text-[11px] text-[#6B7280] mt-2">It appears in the users' Mining shop right away, priced in each user's currency.</p>
+    </Modal>
   );
 }
 
 export function MiningCatalogAdmin() {
   const api = useApi();
+  const [adding, setAdding] = useState(null); // 'equipment' | 'boosters'
   const c = useLoad(() => api.get('/admin/ops/mining/catalog').then((r) => r.data.data), []);
+  const cur = c.data?.currency || 'USD';
   return (
-    <Page title="Mining shop" subtitle="Machine prices and yields, and booster prices. Users see prices converted to their currency." icon={Cpu}>
+    <Page title="Mining shop" subtitle="The machines and boosters users can buy. Add, edit, hide or remove them. Users see prices in their own currency." icon={Cpu}>
       {c.error && <ErrorBox message={c.error} onRetry={c.reload} />}
       {c.loading && !c.data ? <Loading /> : c.data && (
         <div className="space-y-4">
-          <Card title="Machines">
-            {Object.entries(c.data.equipment).map(([id, item]) => <CatalogRow key={id} kind="equipment" id={id} item={item} currency={c.data.currency} onSaved={c.reload} />)}
+          <Card title="Machines" actions={<Button size="sm" onClick={() => setAdding('equipment')}><Plus size={12} />Add machine</Button>}>
+            {Object.keys(c.data.equipment).length
+              ? Object.entries(c.data.equipment).map(([id, item]) => <CatalogRow key={id} kind="equipment" id={id} item={item} currency={cur} onSaved={c.reload} />)
+              : <Empty icon={Cpu} title="No machines in the shop" text="Add a machine so users can start mining." />}
           </Card>
-          <Card title="Boosters">
-            {Object.entries(c.data.boosters).map(([id, item]) => <CatalogRow key={id} kind="boosters" id={id} item={item} currency={c.data.currency} onSaved={c.reload} />)}
+          <Card title="Boosters" actions={<Button size="sm" onClick={() => setAdding('boosters')}><Plus size={12} />Add booster</Button>}>
+            {Object.keys(c.data.boosters).length
+              ? Object.entries(c.data.boosters).map(([id, item]) => <CatalogRow key={id} kind="boosters" id={id} item={item} currency={cur} onSaved={c.reload} />)
+              : <Empty icon={Zap} title="No boosters in the shop" />}
           </Card>
           <p className="text-[10px] text-[#6B7280] flex items-center gap-1"><Zap size={11} />Machines users already own keep earning at the yield they were bought with.</p>
         </div>
       )}
+      {adding && <AddCatalogItem kind={adding} currency={cur} onClose={() => setAdding(null)} onSaved={c.reload} />}
     </Page>
   );
 }

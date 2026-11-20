@@ -17,14 +17,30 @@ const makeRequest = async (endpoint, method = 'GET', data = null, token) => {
     config.body = JSON.stringify(data);
   }
 
-  const response = await fetch(`${API_BASE_URL}/admin/mining${endpoint}`, config);
-  
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.statusText}`);
+  const response = await fetch(`${API_BASE_URL}/admin/mining${cleanQuery(endpoint)}`, config);
+  const body = await response.json().catch(() => ({}));
+
+  if (!response.ok || body?.success === false) {
+    throw new Error(body?.message || body?.error || `Request failed (${response.status})`);
   }
 
-  return response.json();
+  return body;
 };
+
+/**
+ * Drops empty filters from a query string. new URLSearchParams({ status: undefined })
+ * produces "status=undefined", which the server treats as a real filter and matches nothing.
+ */
+function cleanQuery(endpoint) {
+  const [path, query] = endpoint.split('?');
+  if (!query) return endpoint;
+  const params = new URLSearchParams(query);
+  for (const [k, v] of [...params.entries()]) {
+    if (v === '' || v === 'undefined' || v === 'null' || v === 'all') params.delete(k);
+  }
+  const q = params.toString();
+  return q ? `${path}?${q}` : path;
+}
 
 // Mining Overview Stats
 export const getMiningStats = async (token) => {
@@ -40,6 +56,14 @@ export const getMiningPools = async (token, filters = {}) => {
 
 export const updateMiningPool = async (token, poolId, data) => {
   return makeRequest(`/pools/${poolId}`, 'PUT', data, token);
+};
+
+export const createMiningPool = async (token, data) => {
+  return makeRequest('/pools', 'POST', data, token);
+};
+
+export const deleteMiningPool = async (token, poolId) => {
+  return makeRequest(`/pools/${poolId}`, 'DELETE', null, token);
 };
 
 // Mining Equipment

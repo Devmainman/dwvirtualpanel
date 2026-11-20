@@ -6,25 +6,28 @@ import {
   CheckCircle, XCircle, Clock, ChevronDown, Download, Cpu, Users, Zap,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { getMiningPools, updateMiningPool } from '../../api/adminMiningApi';
+import { getMiningPools, updateMiningPool, createMiningPool, deleteMiningPool } from '../../api/adminMiningApi';
+import { toast } from '../../lib/toast';
+
+const COINS = ['BTC', 'ETH', 'LTC', 'DOGE', 'XMR', 'ZEC', 'ETC', 'RVN'];
+const COIN_FOR_ALGO = { 'SHA-256': 'BTC', Ethash: 'ETC', Scrypt: 'LTC', RandomX: 'XMR', Equihash: 'ZEC', X11: 'BTC' };
+const EMPTY_FORM = { name: '', url: '', fee: '1.5', algorithm: 'SHA-256', coin: 'BTC', minPayout: '0.001', location: '', status: 'active' };
 
 export default function MiningPools() {
   const { token } = useAuth();
   const [pools, setPools] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortOrder, setSortOrder] = useState('desc');
   const [editingPool, setEditingPool] = useState(null);
-  const [poolForm, setPoolForm] = useState({
-    name: '',
-    url: '',
-    fee: '1.5',
-    algorithm: 'SHA-256',
-    minPayout: '0.001',
-    status: 'active'
-  });
+  const [poolForm, setPoolForm] = useState(EMPTY_FORM);
+  const [formError, setFormError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
     fetchPools();
@@ -32,62 +35,88 @@ export default function MiningPools() {
 
   const fetchPools = async () => {
     setIsLoading(true);
+    setLoadError('');
     try {
-      const response = await getMiningPools(token, { 
-        status: filterStatus === 'all' ? undefined : filterStatus 
-      });
+      const response = await getMiningPools(token, filterStatus === 'all' ? {} : { status: filterStatus });
       setPools(response.pools || []);
     } catch (error) {
-      console.error("Failed to fetch pools:", error);
+      setLoadError(error.message || 'Could not load mining pools');
+      toast.error(error.message || 'Could not load mining pools');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const openCreate = () => {
+    setEditingPool(null);
+    setPoolForm(EMPTY_FORM);
+    setFormError('');
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    if (saving) return;
+    setIsModalOpen(false);
+    setEditingPool(null);
+    setFormError('');
+  };
+
   const handleSavePool = async () => {
+    setFormError('');
+    if (poolForm.name.trim().length < 2) return setFormError('Enter a pool name');
+    if (!poolForm.url.trim()) return setFormError('Enter the pool URL');
+    const fee = Number(poolForm.fee);
+    if (poolForm.fee === '' || !(fee >= 0 && fee <= 100)) return setFormError('Fee must be between 0 and 100');
+    setSaving(true);
     try {
-      if (editingPool) {
-        await updateMiningPool(token, editingPool.id, poolForm);
-      }
-      // In real implementation, you would have createPool API
-      fetchPools();
+      const body = { ...poolForm, name: poolForm.name.trim(), url: poolForm.url.trim() };
+      const r = editingPool ? await updateMiningPool(token, editingPool.id, body) : await createMiningPool(token, body);
+      toast.success(r.message || (editingPool ? 'Pool updated' : 'Pool created'));
       setIsModalOpen(false);
       setEditingPool(null);
-      setPoolForm({
-        name: '',
-        url: '',
-        fee: '1.5',
-        algorithm: 'SHA-256',
-        minPayout: '0.001',
-        status: 'active'
-      });
+      setPoolForm(EMPTY_FORM);
+      fetchPools();
     } catch (error) {
-      console.error("Failed to save pool:", error);
+      setFormError(error.message);
+      toast.error(error.message);
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleEdit = (pool) => {
     setEditingPool(pool);
+    setFormError('');
     setPoolForm({
-      name: pool.name,
-      url: pool.url,
-      fee: pool.fee,
-      algorithm: pool.algorithm,
-      minPayout: pool.minPayout,
-      status: pool.status
+      name: pool.name || '',
+      url: pool.url || '',
+      fee: String(pool.fee ?? ''),
+      algorithm: pool.algorithm || 'SHA-256',
+      coin: pool.coin || pool.supportedCoins?.[0] || COIN_FOR_ALGO[pool.algorithm] || 'BTC',
+      minPayout: String(pool.minPayout ?? ''),
+      location: typeof pool.location === 'string' ? pool.location : [pool.location?.city, pool.location?.country].filter(Boolean).join(', '),
+      status: pool.status || 'active'
     });
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (poolId) => {
-    if (!window.confirm('Are you sure you want to delete this pool?')) return;
-    // In real implementation, you would have deletePool API
-    console.log('Delete pool:', poolId);
+  const handleDelete = async (pool) => {
+    setDeletingId(pool.id);
+    try {
+      const r = await deleteMiningPool(token, pool.id);
+      toast.success(r.message || 'Pool deleted');
+      setConfirmDelete(null);
+      fetchPools();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const filteredPools = pools.filter(pool =>
-    pool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    pool.algorithm.toLowerCase().includes(searchTerm.toLowerCase())
+    (pool.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (pool.algorithm || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const sortedPools = [...filteredPools].sort((a, b) => {
@@ -109,7 +138,7 @@ export default function MiningPools() {
       ) : (
         <XCircle size={12} className="mr-1" />
       )}
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {String(status || 'unknown').charAt(0).toUpperCase() + String(status || 'unknown').slice(1)}
     </span>
   );
 
@@ -272,7 +301,18 @@ export default function MiningPools() {
             </button>
             
             {/* Export button */}
-            <button className="bg-[#303943] hover:bg-[#3A434D] text-[#A5AFC4] px-3 py-2 rounded-lg flex items-center text-sm">
+            <button className="bg-[#303943] hover:bg-[#3A434D] text-[#A5AFC4] px-3 py-2 rounded-lg flex items-center text-sm disabled:opacity-50"
+              disabled={!pools.length}
+              onClick={() => {
+                const cols = ['name', 'url', 'algorithm', 'coin', 'fee', 'minPayout', 'miners', 'uptime', 'location', 'status'];
+                const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+                const csv = [cols.join(','), ...sortedPools.map((p) => cols.map((c) => esc(p[c])).join(','))].join('\n');
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+                a.download = 'mining-pools.csv';
+                a.click();
+                URL.revokeObjectURL(a.href);
+              }}>
               <Download className="h-4 w-4 mr-2" />
               Export
             </button>
@@ -280,18 +320,7 @@ export default function MiningPools() {
             {/* Add button */}
             <button 
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center text-sm shadow-lg"
-              onClick={() => {
-                setEditingPool(null);
-                setPoolForm({
-                  name: '',
-                  url: '',
-                  fee: '1.5',
-                  algorithm: 'SHA-256',
-                  minPayout: '0.001',
-                  status: 'active'
-                });
-                setIsModalOpen(true);
-              }}
+              onClick={openCreate}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Pool
@@ -322,11 +351,11 @@ export default function MiningPools() {
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#282F36] mb-4">
                   <AlertCircle className="h-6 w-6 text-[#A5AFC4]" />
                 </div>
-                <h3 className="text-lg font-medium text-white mb-1">No mining pools found</h3>
-                <p className="text-[#A5AFC4] mb-4">Create your first pool to get started</p>
+                <h3 className="text-lg font-medium text-white mb-1">{loadError ? 'Could not load mining pools' : filterStatus !== 'all' ? `No ${filterStatus} pools` : 'No mining pools found'}</h3>
+                <p className="text-[#A5AFC4] mb-4">{loadError || (filterStatus !== 'all' ? 'Change the filter to see other pools.' : 'Create your first pool to get started')}</p>
                 <button 
                   className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center mx-auto"
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={openCreate}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Mining Pool
@@ -372,7 +401,7 @@ export default function MiningPools() {
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button 
-                            onClick={() => handleDelete(pool.id)}
+                            onClick={() => setConfirmDelete(pool)}
                             className="p-2 rounded-full hover:bg-red-500/20 text-red-400"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -433,13 +462,10 @@ export default function MiningPools() {
                           <Edit2 className="h-4 w-4" />
                         </button>
                         <button 
-                          onClick={() => handleDelete(pool.id)}
+                          onClick={() => setConfirmDelete(pool)}
                           className="text-red-400 hover:text-red-300 p-2 rounded hover:bg-red-500/20"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
-                        <button className="text-[#A5AFC4] hover:text-white p-2 rounded hover:bg-[#404A56]">
-                          <MoreHorizontal className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
@@ -460,10 +486,7 @@ export default function MiningPools() {
                 {editingPool ? 'Edit Mining Pool' : 'Add New Mining Pool'}
               </h3>
               <button 
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setEditingPool(null);
-                }}
+                onClick={closeModal}
                 className="text-[#A5AFC4] hover:text-white"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -527,7 +550,7 @@ export default function MiningPools() {
                   <select 
                     className="w-full bg-[#1E232A] border border-[#303943] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     value={poolForm.algorithm}
-                    onChange={(e) => setPoolForm({...poolForm, algorithm: e.target.value})}
+                    onChange={(e) => setPoolForm({...poolForm, algorithm: e.target.value, coin: COIN_FOR_ALGO[e.target.value] || poolForm.coin})}
                   >
                     <option value="SHA-256">SHA-256 (Bitcoin)</option>
                     <option value="Ethash">Ethash (Ethereum)</option>
@@ -536,6 +559,29 @@ export default function MiningPools() {
                     <option value="Equihash">Equihash (Zcash)</option>
                     <option value="X11">X11 (Dash)</option>
                   </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#A5AFC4] mb-1">Coin mined</label>
+                    <select
+                      className="w-full bg-[#1E232A] border border-[#303943] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={poolForm.coin}
+                      onChange={(e) => setPoolForm({...poolForm, coin: e.target.value})}
+                    >
+                      {COINS.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#A5AFC4] mb-1">Location (optional)</label>
+                    <input
+                      type="text"
+                      className="w-full bg-[#1E232A] border border-[#303943] rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={poolForm.location}
+                      onChange={(e) => setPoolForm({...poolForm, location: e.target.value})}
+                      placeholder="e.g. Frankfurt"
+                    />
+                  </div>
                 </div>
                 
                 <div>
@@ -576,23 +622,48 @@ export default function MiningPools() {
                     </label>
                   </div>
                 </div>
+                {formError && <p className="text-sm text-red-400">{formError}</p>}
               </div>
             </div>
             <div className="p-4 border-t border-[#303943] flex justify-end space-x-3">
               <button 
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setEditingPool(null);
-                }}
-                className="px-4 py-2 bg-[#303943] text-[#A5AFC4] rounded-lg hover:bg-[#3A434D]"
+                onClick={closeModal}
+                disabled={saving}
+                className="px-4 py-2 disabled:opacity-50 bg-[#303943] text-[#A5AFC4] rounded-lg hover:bg-[#3A434D]"
               >
                 Cancel
               </button>
               <button 
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60 inline-flex items-center gap-2"
                 onClick={handleSavePool}
+                disabled={saving}
               >
+                {saving && <RefreshCw className="h-4 w-4 animate-spin" />}
                 {editingPool ? 'Save Changes' : 'Create Pool'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onMouseDown={() => !deletingId && setConfirmDelete(null)}>
+          <div className="bg-[#282F36] rounded-lg shadow-xl w-full max-w-md" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b border-[#303943]">
+              <h3 className="text-lg font-semibold text-white">Delete {confirmDelete.name}?</h3>
+            </div>
+            <div className="p-4 text-sm text-[#A5AFC4] space-y-2">
+              <p>Users will no longer see this pool. This cannot be undone.</p>
+              <p>If anyone is mining on it right now, the delete is refused. Set it to Maintenance or Offline instead.</p>
+            </div>
+            <div className="p-4 border-t border-[#303943] flex justify-end space-x-3">
+              <button onClick={() => setConfirmDelete(null)} disabled={!!deletingId}
+                className="px-4 py-2 bg-[#303943] text-[#A5AFC4] rounded-lg hover:bg-[#3A434D] disabled:opacity-50">Cancel</button>
+              <button onClick={() => handleDelete(confirmDelete)} disabled={!!deletingId}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-60 inline-flex items-center gap-2">
+                {deletingId && <RefreshCw className="h-4 w-4 animate-spin" />}
+                Delete pool
               </button>
             </div>
           </div>
