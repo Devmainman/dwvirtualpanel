@@ -7,7 +7,7 @@ import {
   AlertCircle, FileText, DollarSign, Clipboard,
   LifeBuoy, Settings, ChevronDown, ChevronRight, 
   CreditCard, CheckCircle, MapPin, UserCheck, History, Image,
-  Cpu, Drill, Zap, Award, Users, BarChart, Copy, Bell, LayoutGrid, Newspaper,
+  Cpu, Drill, Zap, Award, Users, BarChart, Copy, Bell, LayoutGrid, Newspaper, HelpCircle, Trophy,
 } from "lucide-react";
 
 const SidebarItem = ({ icon, text, to, hasChildren = false, expanded = false, onClick }) => {
@@ -305,6 +305,27 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
             text="Blog"
             to="/blog"
           />
+
+          <SidebarItem
+            icon={<HelpCircle size={16} />}
+            text="FAQ"
+            to="/faq"
+          />
+
+          <SidebarItem
+            icon={<Trophy size={16} />}
+            text="Trader Rewards"
+            to="/rewards"
+            hasChildren={true}
+            expanded={isMenuExpanded("rewards")}
+            onClick={() => toggleMenu("rewards")}
+          />
+          {isMenuExpanded("rewards") && (
+            <div className="ml-1 mt-1 pl-2 border-l border-gray-700">
+              <NestedItem text="Milestones & settings" to="/rewards" />
+              <NestedItem text="Reward Invoices" to="/reward-invoices" />
+            </div>
+          )}
           
           <SidebarItem 
             icon={<LifeBuoy size={16} />} 

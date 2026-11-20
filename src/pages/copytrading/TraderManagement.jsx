@@ -497,6 +497,10 @@ const TraderManagement = () => {
                       <div className="text-xs text-gray-500 mt-1">
                         {trader.stats?.activeCopies ?? trader.socialStats?.activeCopiers ?? 0} active copiers
                       </div>
+                      <button type="button" onClick={() => navigate(`/copy-trading/trader/${trader.traderId}/trades`)}
+                        className={`mt-1 text-[11px] ${trader.autoTrading?.enabled ? 'text-emerald-400' : 'text-gray-500'} hover:underline`}>
+                        Autopilot {trader.autoTrading?.enabled ? (trader.autoTrading.state === 'in_trade' ? 'on · in a trade' : trader.autoTrading.state === 'error' ? 'on · needs attention' : 'on · watching') : 'off'}
+                      </button>
                     </td>
                     
                     <td className="p-4">

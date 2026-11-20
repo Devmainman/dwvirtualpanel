@@ -1,35 +1,48 @@
-// Stocks: listings, prices (single or bulk) and user holdings.
-import { useState } from 'react';
-import { LineChart, Plus, Pencil, Upload } from 'lucide-react';
+// Stocks: listings, prices (live from the market, or set by hand) and user holdings.
+import { useEffect, useState } from 'react';
+import { LineChart, Plus, Pencil, Upload, RefreshCw, Download, Radio } from 'lucide-react';
 import {
   Page, Card, Button, Field, Toggle, Tabs, Table, Pager, Badge, Modal, inputCls, Loading, ErrorBox, Empty,
   useApi, useLoad, useAction, money, num, who
 } from './kit';
 
-const blank = { symbol: '', name: '', exchange: 'NASDAQ', sector: 'Technology', logo: '', description: '', price: '', previousClose: '', marketCap: '', dividendYield: 0, feePercent: 0.5, isActive: true };
+const blank = { symbol: '', name: '', exchange: 'NASDAQ', sector: 'Technology', logo: '', description: '', price: '', previousClose: '', marketCap: '', dividendYield: 0, feePercent: 0.5, isActive: true, priceSource: 'live' };
+const ago = (d) => { if (!d) return 'never'; const s = Math.max(0, Math.round((Date.now() - new Date(d)) / 1000)); return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)}m ago` : `${Math.round(s / 3600)}h ago`; };
 
 function StockForm({ initial, onClose, onSaved }) {
   const api = useApi();
   const { busy, run } = useAction();
   const [f, setF] = useState(initial ? { ...blank, ...initial } : blank);
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e?.target ? e.target.value : e }));
+  const live = f.priceSource !== 'manual';
   const save = () => run('save', async () => {
-    const body = Object.fromEntries(Object.entries(f).filter(([k]) => k in blank));
-    if (initial) await api.put(`/admin/products/stocks/${initial._id}`, body);
-    else await api.post('/admin/products/stocks', body);
+    let body = Object.fromEntries(Object.entries(f).filter(([k]) => k in blank));
+    // A live stock takes its price from the market: typed prices are not sent.
+    if (live) { body = { ...body }; delete body.price; delete body.previousClose; }
+    if (!initial && live) body = { symbol: f.symbol, sector: f.sector, feePercent: f.feePercent, dividendYield: f.dividendYield, logo: f.logo, description: f.description, isActive: f.isActive };
+    const r = initial ? await api.put(`/admin/products/stocks/${initial._id}`, body) : await api.post('/admin/products/stocks', body);
     onSaved();
     onClose();
-  }, initial ? 'Stock updated' : 'Stock listed');
+    return r;
+  }, (r) => r.data.message || (initial ? 'Stock updated' : 'Stock listed'));
   return (
     <Modal open title={initial ? `Edit · ${initial.symbol}` : 'List a stock'} onClose={onClose}
       footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button busy={busy === 'save'} onClick={save}>{initial ? 'Save' : 'List stock'}</Button></>}>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Symbol"><input className={inputCls} value={f.symbol} disabled={!!initial} onChange={set('symbol')} /></Field>
-        <Field label="Name"><input className={inputCls} value={f.name} onChange={set('name')} /></Field>
-        <Field label="Exchange"><input className={inputCls} value={f.exchange} onChange={set('exchange')} /></Field>
+        <div className="col-span-2 flex items-center justify-between rounded-xl bg-[#22282E] border border-[#2F3944] px-3 py-2">
+          <div>
+            <p className="text-xs text-white flex items-center gap-1.5"><Radio size={12} className={live ? 'text-emerald-400' : 'text-[#6B7280]'} />{live ? 'Live market price' : 'Manual price'}</p>
+            <p className="text-[10px] text-[#6B7280]">{live ? 'The price follows the real market every minute.' : 'You set the price; it does not move on its own.'}</p>
+          </div>
+          <Toggle checked={live} onChange={(v) => setF((s) => ({ ...s, priceSource: v ? 'live' : 'manual' }))} label={live ? 'Live' : 'Manual'} />
+        </div>
+        <Field label="Symbol" hint={!initial && live ? 'e.g. AAPL. Name, price and history come from the market.' : undefined}><input className={inputCls} value={f.symbol} disabled={!!initial} onChange={(e) => setF((s) => ({ ...s, symbol: e.target.value.toUpperCase() }))} /></Field>
+        {(initial || !live) && <Field label="Name"><input className={inputCls} value={f.name} onChange={set('name')} /></Field>}
+        {(initial || !live) && <Field label="Exchange"><input className={inputCls} value={f.exchange} onChange={set('exchange')} /></Field>}
         <Field label="Sector"><input className={inputCls} value={f.sector} onChange={set('sector')} /></Field>
-        <Field label="Price (base currency)"><input type="number" className={inputCls} value={f.price} onChange={set('price')} /></Field>
-        <Field label="Previous close"><input type="number" className={inputCls} value={f.previousClose} onChange={set('previousClose')} /></Field>
+        {!live && <Field label="Price (base currency)"><input type="number" className={inputCls} value={f.price} onChange={set('price')} /></Field>}
+        {!live && <Field label="Previous close"><input type="number" className={inputCls} value={f.previousClose} onChange={set('previousClose')} /></Field>}
+        {live && initial && <div className="col-span-2 text-[11px] text-[#8C96A8]">Live price {money(initial.price)} · updated {ago(initial.lastPriceAt)}{initial.priceError ? <span className="text-amber-400"> · {initial.priceError}</span> : ''}</div>}
         <Field label="Market cap"><input type="number" className={inputCls} value={f.marketCap} onChange={set('marketCap')} /></Field>
         <Field label="Dividend yield (%)"><input type="number" className={inputCls} value={f.dividendYield} onChange={set('dividendYield')} /></Field>
         <Field label="Trading fee (%)"><input type="number" className={inputCls} value={f.feePercent} onChange={set('feePercent')} /></Field>
@@ -54,9 +67,9 @@ function BulkPrices({ onClose, onSaved }) {
     return r;
   }, (r) => r.data.message);
   return (
-    <Modal open title="Update prices" onClose={onClose}
+    <Modal open title="Set manual prices" onClose={onClose}
       footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button busy={busy === 'bulk'} disabled={!rows.length} onClick={save}>Update {rows.length || ''} price{rows.length === 1 ? '' : 's'}</Button></>}>
-      <Field label="One per line: SYMBOL PRICE [PREVIOUS_CLOSE]" hint="Example: AAPL 231.40 228.10">
+      <Field label="One per line: SYMBOL PRICE [PREVIOUS_CLOSE]" hint="Example: AAPL 231.40 228.10. These stocks switch to manual prices.">
         <textarea className={`${inputCls} h-auto py-2 min-h-[180px] font-mono`} value={text} onChange={(e) => setText(e.target.value)} placeholder={'AAPL 231.40\nNVDA 141.20 139.90'} />
       </Field>
     </Modal>
@@ -66,10 +79,20 @@ function BulkPrices({ onClose, onSaved }) {
 function Listings() {
   const api = useApi();
   const list = useLoad(() => api.get('/admin/products/stocks').then((r) => r.data.data), []);
+  const { busy, run } = useAction();
   const [editing, setEditing] = useState(null);
   const [bulk, setBulk] = useState(false);
+  // Live prices move: keep the table current.
+  useEffect(() => { const t = setInterval(() => document.visibilityState === 'visible' && list.reload(), 30000); return () => clearInterval(t); }, [list.reload]);
+  const liveCount = (list.data || []).filter((s) => s.priceSource !== 'manual').length;
   return (
-    <Card actions={<div className="flex gap-2"><Button variant="secondary" onClick={() => setBulk(true)}><Upload size={13} />Update prices</Button><Button onClick={() => setEditing('new')}><Plus size={14} />List stock</Button></div>}>
+    <Card actions={<div className="flex flex-wrap gap-2">
+      <Button variant="secondary" busy={busy === 'refresh'} disabled={!!busy} onClick={() => run('refresh', () => api.post('/admin/products/stocks/refresh').then((r) => { list.reload(); return r; }), (r) => r.data.message)}><RefreshCw size={13} />Refresh live prices</Button>
+      <Button variant="secondary" busy={busy === 'install'} disabled={!!busy} onClick={() => run('install', () => api.post('/admin/products/stocks/install-popular').then((r) => { list.reload(); return r; }), (r) => r.data.message)}><Download size={13} />Install popular stocks</Button>
+      <Button variant="secondary" onClick={() => setBulk(true)}><Upload size={13} />Manual prices</Button>
+      <Button onClick={() => setEditing('new')}><Plus size={14} />List stock</Button>
+    </div>}>
+      {!!list.data?.length && <p className="text-[11px] text-[#8C96A8] mb-2">{liveCount} of {list.data.length} stocks follow the live market (refreshed every minute).</p>}
       {list.error && <ErrorBox message={list.error} onRetry={list.reload} />}
       {list.loading && !list.data ? <Loading /> : (
         <Table rows={list.data} empty={<Empty icon={LineChart} title="No stocks listed" />} onRowClick={setEditing} columns={[
@@ -77,6 +100,7 @@ function Listings() {
           { key: 'exchange', label: 'Exchange' },
           { key: 'price', label: 'Price', align: 'right', render: (s) => money(s.price) },
           { key: 'change', label: 'Change', align: 'right', render: (s) => <span className={s.changePercent >= 0 ? 'text-emerald-400' : 'text-red-400'}>{s.changePercent >= 0 ? '+' : ''}{num(s.changePercent)}%</span> },
+          { key: 'source', label: 'Price', render: (s) => (s.priceSource === 'manual' ? <Badge tone="gray">Manual</Badge> : s.priceError && (!s.lastPriceAt || Date.now() - new Date(s.lastPriceAt) > 15 * 60e3) ? <span title={s.priceError}><Badge tone="amber">Live · unavailable</Badge></span> : <span className="text-[11px] text-emerald-400">Live · {ago(s.lastPriceAt)}</span>) },
           { key: 'fee', label: 'Fee', align: 'right', render: (s) => `${s.feePercent}%` },
           { key: 'isActive', label: 'Status', render: (s) => <Badge tone={s.isActive ? 'green' : 'gray'}>{s.isActive ? 'Tradable' : 'Hidden'}</Badge> },
           { key: 'edit', label: '', render: () => <Pencil size={12} className="text-[#6B7280]" /> }

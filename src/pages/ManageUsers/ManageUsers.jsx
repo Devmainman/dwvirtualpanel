@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Users, UserCheck, UserX, Wifi, UserPlus, Wallet, Search, X, Mail, Phone, ShieldCheck, MapPin, Fingerprint,
-  KeyRound, LogIn, Trash2, Send, Package, Activity, ArrowDownLeft, ArrowUpRight, Lock, Unlock, Ban, CheckCircle2, Bell
+  KeyRound, LogIn, Trash2, Send, Package, Activity, ArrowDownLeft, ArrowUpRight, Lock, Unlock, Ban, CheckCircle2, Bell,
+  Eye, EyeOff, Copy, Eraser
 } from 'lucide-react';
 import { toast } from '../../lib/toast';
 import {
@@ -179,6 +180,11 @@ function ControlsTab({ user, onSaved, onDeleted }) {
   const [reason, setReason] = useState('');
   const [blockOpen, setBlockOpen] = useState(false);
   const [delText, setDelText] = useState('');
+  const [shownPw, setShownPw] = useState(null);       // { available, password?, reason? }
+  const [clear, setClear] = useState({ open: false, text: '', history: false });
+  const viewPassword = () => (shownPw ? setShownPw(null) : run('viewpw', () => api.get(`/admin/users/${user._id}/password`).then((r) => setShownPw(r.data.data))));
+  const copyPw = () => navigator.clipboard?.writeText(shownPw.password).then(() => toast.success('Password copied'), () => toast.error('Could not copy'));
+  const clearAccount = () => run('clear', () => api.post(`/admin/users/${user._id}/clear-account`, { confirmation: 'CLEAR', clearHistory: clear.history }).then((r) => { setClear({ open: false, text: '', history: false }); onSaved(); return r; }), (r) => r.data.message);
   const packages = useLoad(() => api.get('/packages').then((r) => r.data.packages || []), []);
   const [pkg, setPkg] = useState(user.accountType?._id || '');
   const toggle = (path, msg) => run(path, () => api.patch(`/admin/users/${user._id}/${path}`).then(onSaved), msg);
@@ -227,6 +233,20 @@ function ControlsTab({ user, onSaved, onDeleted }) {
       </Section>
 
       <Section title="Password & sign-in">
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-[#22282E] border border-[#2F3944] px-3 py-2">
+          <div className="min-w-0">
+            <p className="text-[10px] text-[#6B7280]">Current password</p>
+            {shownPw?.available
+              ? <p className="text-sm text-white font-mono break-all">{shownPw.password}</p>
+              : shownPw ? <p className="text-[11px] text-amber-400">{shownPw.reason}</p>
+                : <p className="text-sm text-white tracking-widest">••••••••</p>}
+          </div>
+          <div className="flex gap-1.5 shrink-0">
+            {shownPw?.available && <Button size="sm" variant="secondary" onClick={copyPw}><Copy size={12} />Copy</Button>}
+            <Button size="sm" variant="secondary" busy={busy === 'viewpw'} onClick={viewPassword}>{shownPw ? <><EyeOff size={12} />Hide</> : <><Eye size={12} />View password</>}</Button>
+          </div>
+        </div>
+        <p className="text-[10px] text-[#6B7280] pt-1">Or set a new password:</p>
         <div className="grid grid-cols-2 gap-2">
           <Field label="New password"><input type="password" autoComplete="new-password" className={inputCls} value={pw.newPassword} onChange={(e) => setPw((s) => ({ ...s, newPassword: e.target.value }))} /></Field>
           <Field label="Confirm"><input type="password" autoComplete="new-password" className={inputCls} value={pw.confirmPassword} onChange={(e) => setPw((s) => ({ ...s, confirmPassword: e.target.value }))} /></Field>
@@ -234,11 +254,32 @@ function ControlsTab({ user, onSaved, onDeleted }) {
         {pw.newPassword && pw.newPassword.length < 8 && <p className="text-[10px] text-amber-400">At least 8 characters</p>}
         {pw.confirmPassword && pw.confirmPassword !== pw.newPassword && <p className="text-[10px] text-red-400">Passwords don&apos;t match</p>}
         <div className="flex justify-between">
-          <Button size="sm" variant="secondary" busy={busy === 'as'} onClick={loginAs}><LogIn size={12} />Open as user</Button>
+          <Button size="sm" variant="secondary" busy={busy === 'as'} onClick={loginAs}><LogIn size={12} />Gain access</Button>
           <Button size="sm" busy={busy === 'pw'} disabled={pw.newPassword.length < 8 || pw.newPassword !== pw.confirmPassword}
-            onClick={() => run('pw', () => api.post(`/admin/users/${user._id}/reset-password`, pw).then(() => setPw({ newPassword: '', confirmPassword: '' })), 'Password reset')}><KeyRound size={12} />Reset password</Button>
+            onClick={() => run('pw', () => api.post(`/admin/users/${user._id}/reset-password`, pw).then(() => { setPw({ newPassword: '', confirmPassword: '' }); setShownPw(null); }), 'Password reset')}><KeyRound size={12} />Reset password</Button>
         </div>
       </Section>
+
+      <section className="border border-amber-500/25 bg-amber-500/5 rounded-2xl p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold text-amber-300">Clear account</p>
+            <p className="text-[10px] text-[#8C96A8] mt-0.5">Sets the balance to zero ({money(user.walletBalance ?? user.balance ?? 0, user.currency || 'USD')} now). The user keeps their sign-in.</p>
+          </div>
+          <Button size="sm" variant="secondary" onClick={() => setClear({ open: true, text: '', history: false })}><Eraser size={12} />Clear account</Button>
+        </div>
+      </section>
+
+      <Modal open={clear.open} title={`Clear ${displayName(user)}'s account`} onClose={() => busy !== 'clear' && setClear({ open: false, text: '', history: false })}
+        footer={<><Button variant="secondary" disabled={busy === 'clear'} onClick={() => setClear({ open: false, text: '', history: false })}>Cancel</Button><Button variant="danger" busy={busy === 'clear'} disabled={clear.text !== 'CLEAR'} onClick={clearAccount}><Eraser size={12} />Clear account</Button></>}>
+        <p className="text-xs text-[#A5AFC4]">The balance of {money(user.walletBalance ?? user.balance ?? 0, user.currency || 'USD')} is removed{clear.history ? '' : ' and recorded as an admin debit'}.</p>
+        <label className="flex items-center gap-2 mt-3 text-xs text-white">
+          <input type="checkbox" checked={clear.history} onChange={(e) => setClear((s) => ({ ...s, history: e.target.checked }))} />
+          Also delete transactions, deposits, withdrawals and notifications
+        </label>
+        {clear.history && <p className="text-[10px] text-red-400 mt-1">Deleted history cannot be recovered.</p>}
+        <Field label="Type CLEAR to confirm" className="mt-3"><input className={inputCls} value={clear.text} onChange={(e) => setClear((s) => ({ ...s, text: e.target.value }))} placeholder="CLEAR" /></Field>
+      </Modal>
 
       <section className="border border-red-500/25 bg-red-500/5 rounded-2xl p-4">
         <p className="text-xs font-semibold text-red-300">Delete account</p>

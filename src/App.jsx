@@ -65,6 +65,8 @@ import { ColdStorageAdmin, CardsAdmin, WalletsAdmin } from './products/VaultsCar
 import { CardSettings, CardInvoices } from './products/CardSystem';
 import { SmartTraderAdmin, BotInvoices } from './products/SmartTraderAdmin';
 import { BlogAdmin } from './products/BlogAdmin';
+import { FaqAdmin } from './products/FaqAdmin';
+import { RewardsAdmin, RewardInvoices } from './products/RewardsAdmin';
 import { MarketsAdmin, PackageTradesAdmin, MiningCatalogAdmin, NotificationsAdmin } from './products/TradingOps';
 
 function App() {
@@ -159,6 +161,9 @@ function App() {
           <Route path="card-settings" element={<CardSettings />} />
           <Route path="ai-smart-trader" element={<SmartTraderAdmin />} />
           <Route path="blog" element={<BlogAdmin />} />
+          <Route path="faq" element={<FaqAdmin />} />
+          <Route path="rewards" element={<RewardsAdmin />} />
+          <Route path="reward-invoices" element={<RewardInvoices />} />
           <Route path="card-invoices" element={<CardInvoices />} />
           <Route path="accounts-package" element={<AccountsPackage />} />
           <Route path="signal-packages" element={<SignalPackage />} />

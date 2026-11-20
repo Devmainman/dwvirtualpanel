@@ -12,6 +12,7 @@ import axios from 'axios';
 import { toast } from '../../lib/toast';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../api/config';
+import AutopilotPanel from './AutopilotPanel';
 
 const StatusBadge = ({ status }) => {
   const config = {
@@ -344,7 +345,11 @@ console.log('Final API_BASE_URL:', API_BASE_URL);
           </button>
         </div>
       </div>
-      
+
+      <div className="mb-6">
+        <AutopilotPanel traderId={traderId} onChanged={fetchTraderTrades} />
+      </div>
+
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-gradient-to-r from-[#2B333C] to-[#24675F] rounded-lg p-4 shadow-lg">
