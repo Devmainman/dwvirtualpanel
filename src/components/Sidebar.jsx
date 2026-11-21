@@ -156,7 +156,6 @@ export default function Sidebar({ sidebarOpen, toggleSidebar }) {
               <NestedItem text="Cold Storage" to="/products/cold-storage" />
               <NestedItem text="Card Settings" to="/card-settings" />
               <NestedItem text="AI Smart Trader" to="/ai-smart-trader" />
-              <NestedItem text="Cards (old system)" to="/products/cards" />
               <NestedItem text="Connected Wallets" to="/products/wallets" />
             </div>
           )}

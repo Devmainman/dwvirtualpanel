@@ -12,7 +12,7 @@ const TILES = [
   { key: 'tradingPackages', label: 'Trading packages', icon: Bot, to: '/products/packages', value: (d, c) => money(d.total, c), hint: (d) => `${d.count} running` },
   { key: 'copyTrading', label: 'Copy trading', icon: Copy, to: '/copy-trading', value: (d, c) => money(d.total, c), hint: (d) => `${d.count} live copies` },
   { key: 'coldStorage', label: 'Cold storage', icon: Lock, to: '/products/cold-storage', value: (d, c) => money(d.total, c), hint: (d) => `${d.count} vaults` },
-  { key: 'cards', label: 'Cards', icon: CreditCard, to: '/products/cards', value: (d, c) => money(d.total, c), hint: (d) => `${d.count} live cards` },
+  { key: 'cards', label: 'Cards', icon: CreditCard, to: '/card-invoices', value: (d) => num(d.active, 0), hint: (d) => `active cards${d.toReview ? ` · ${d.toReview} to review` : ''}` },
   { key: 'mining', label: 'Mining', icon: Cpu, to: '/mining', value: (d) => num(d.activeSessions, 0), hint: () => 'sessions running' }
 ];
 
@@ -43,15 +43,6 @@ function Config() {
           <Field label="Unlock delay (hours)"><input type="number" min="0" className={inputCls} value={form.coldStorage?.unlockDelayHours ?? ''} onChange={(e) => set('coldStorage', 'unlockDelayHours', e.target.value)} /></Field>
           <Field label="Minimum deposit (base currency)"><input type="number" min="0" className={inputCls} value={form.coldStorage?.minDeposit ?? ''} onChange={(e) => set('coldStorage', 'minDeposit', e.target.value)} /></Field>
         </div>
-        <div className="space-y-3">
-          <p className="text-[11px] uppercase tracking-wide text-[#6B7280]">Cards</p>
-          <Toggle checked={!!form.cards?.enabled} onChange={(v) => set('cards', 'enabled', v)} label="Enabled" />
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Virtual fee"><input type="number" min="0" className={inputCls} value={form.cards?.virtualFee ?? ''} onChange={(e) => set('cards', 'virtualFee', e.target.value)} /></Field>
-            <Field label="Physical fee"><input type="number" min="0" className={inputCls} value={form.cards?.physicalFee ?? ''} onChange={(e) => set('cards', 'physicalFee', e.target.value)} /></Field>
-          </div>
-          <Field label="Max cards per user"><input type="number" min="1" className={inputCls} value={form.cards?.maxCardsPerUser ?? ''} onChange={(e) => set('cards', 'maxCardsPerUser', e.target.value)} /></Field>
-        </div>
       </div>
     </Card>
   );
@@ -71,7 +62,7 @@ export default function ProductsOverview() {
             <Stat i={0} label="Users" value={num(d.users, 0)} />
             <Stat i={1} label="Spendable balances" value={money(d.userBalances.total, d.currency)} tone="blue" />
             <Stat i={2} label="Working in products" tone="up"
-              value={money(['realEstate', 'liveMarkets', 'tradingPackages', 'copyTrading', 'coldStorage', 'cards'].reduce((s, k) => s + (d[k]?.total || 0), 0), d.currency)} />
+              value={money(['realEstate', 'liveMarkets', 'tradingPackages', 'copyTrading', 'coldStorage'].reduce((s, k) => s + (d[k]?.total || 0), 0), d.currency)} />
             <Stat i={3} label="Open real-estate projects" value={num(d.realEstate.projects?.open || 0, 0)} hint={`${d.realEstate.projects?.closed || 0} closed`} />
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-5">

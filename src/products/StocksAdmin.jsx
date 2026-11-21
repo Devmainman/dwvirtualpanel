@@ -1,6 +1,6 @@
 // Stocks: listings, prices (live from the market, or set by hand) and user holdings.
 import { useEffect, useState } from 'react';
-import { LineChart, Plus, Pencil, Upload, RefreshCw, Download, Radio } from 'lucide-react';
+import { LineChart, Plus, Pencil, Upload, RefreshCw, Download, Radio, Trash2 } from 'lucide-react';
 import {
   Page, Card, Button, Field, Toggle, Tabs, Table, Pager, Badge, Modal, inputCls, Loading, ErrorBox, Empty,
   useApi, useLoad, useAction, money, num, who
@@ -27,7 +27,14 @@ function StockForm({ initial, onClose, onSaved }) {
   }, (r) => r.data.message || (initial ? 'Stock updated' : 'Stock listed'));
   return (
     <Modal open title={initial ? `Edit · ${initial.symbol}` : 'List a stock'} onClose={onClose}
-      footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button busy={busy === 'save'} onClick={save}>{initial ? 'Save' : 'List stock'}</Button></>}>
+      footer={<>
+        {initial && <Button variant="danger" className="mr-auto" busy={busy === 'delete'} disabled={!!busy} onClick={() => {
+          if (!window.confirm(`Delete ${initial.symbol}? Users will no longer see it. This cannot be undone.`)) return;
+          run('delete', () => api.delete(`/admin/products/stocks/${initial._id}`).then((r) => { onSaved(); onClose(); return r; }), (r) => r.data.message);
+        }}><Trash2 size={13} />Delete</Button>}
+        <Button variant="secondary" disabled={!!busy} onClick={onClose}>Cancel</Button>
+        <Button busy={busy === 'save'} disabled={!!busy} onClick={save}>{initial ? 'Save' : 'List stock'}</Button>
+      </>}>
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2 flex items-center justify-between rounded-xl bg-[#22282E] border border-[#2F3944] px-3 py-2">
           <div>

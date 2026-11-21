@@ -121,6 +121,7 @@ export default function Copytrading() {
   });
   
   const [showAddTraderModal, setShowAddTraderModal] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [newTrader, setNewTrader] = useState({
     username: '',
     email: '',
@@ -159,6 +160,25 @@ export default function Copytrading() {
     fetchTraders();
     fetchPlatformStats();
   }, [searchParams]);
+
+  const [autoSummary, setAutoSummary] = useState(null);
+  const [autoBusy, setAutoBusy] = useState(null);
+  const loadAutoSummary = () => axios.get(`${API_BASE_URL}/admin/copy-trading/autopilot/summary`, { headers: { Authorization: `Bearer ${token}` } })
+    .then((r) => setAutoSummary(r.data.data)).catch(() => {});
+  useEffect(() => { if (token) loadAutoSummary(); }, [token]);
+  const setAutopilotForAll = async (enabled) => {
+    setAutoBusy(enabled ? 'on' : 'off');
+    try {
+      const r = await axios.post(`${API_BASE_URL}/admin/copy-trading/autopilot/all`, { enabled }, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success(r.data.message);
+      loadAutoSummary();
+      fetchTraders();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not change the autopilot');
+    } finally {
+      setAutoBusy(null);
+    }
+  };
 
   const fetchTraders = async () => {
     try {
@@ -213,11 +233,13 @@ export default function Copytrading() {
   };
 
   const handleCreateTrader = async () => {
+    if (creating) return;
     try {
       if (!newTrader.username || !newTrader.email) {
         toast.error('Username and email are required');
         return;
       }
+      setCreating(true);
       
       const response = await axios.post(
         `${API_BASE_URL}/admin/copy-trading/traders`,
@@ -226,7 +248,7 @@ export default function Copytrading() {
       );
       
       if (response.data.success) {
-        toast.success('Trader created successfully');
+        toast.success(response.data.message || 'Trader created');
         setShowAddTraderModal(false);
         setNewTrader({
           username: '',
@@ -247,6 +269,8 @@ export default function Copytrading() {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to create trader');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -566,12 +590,41 @@ const handleExecuteAction = async () => {
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
             
-            <button 
+            <button
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center text-sm shadow-lg"
               onClick={() => setShowAddTraderModal(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Trader
+            </button>
+          </div>
+        </div>
+
+        {/* Autopilot for every trader */}
+        <div className="px-4 py-3 border-b border-[#303943] flex flex-wrap items-center justify-between gap-3 bg-[#22282E]">
+          <div className="text-sm">
+            <p className="text-white font-medium">Autopilot</p>
+            <p className="text-xs text-[#A5AFC4]">
+              {autoSummary ? `${autoSummary.on} of ${autoSummary.total} active traders trade automatically at live prices${autoSummary.inTrade ? ` · ${autoSummary.inTrade} in a trade now` : ''}.` : 'Loading…'}
+              {' '}New traders start with it on, each with its own coins and style. Fine-tune one trader on its Trades page.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              disabled={!!autoBusy || (autoSummary && autoSummary.on === autoSummary.total)}
+              onClick={() => setAutopilotForAll(true)}
+              className="px-3 py-2 rounded-lg text-sm bg-emerald-600 hover:bg-emerald-700 text-white flex items-center disabled:opacity-50"
+            >
+              {autoBusy === 'on' ? <RefreshCw size={14} className="mr-2 animate-spin" /> : <Play size={14} className="mr-2" />}
+              On for all traders
+            </button>
+            <button
+              disabled={!!autoBusy || (autoSummary && autoSummary.on === 0)}
+              onClick={() => { if (window.confirm('Turn the autopilot off for every trader? Open trades stay open until closed by hand.')) setAutopilotForAll(false); }}
+              className="px-3 py-2 rounded-lg text-sm bg-[#303943] hover:bg-[#3A434D] text-[#DDE3EC] flex items-center disabled:opacity-50"
+            >
+              {autoBusy === 'off' ? <RefreshCw size={14} className="mr-2 animate-spin" /> : <Pause size={14} className="mr-2" />}
+              Off for all
             </button>
           </div>
         </div>
@@ -915,9 +968,9 @@ const handleExecuteAction = async () => {
 
       {/* Add Trader Modal */}
       {showAddTraderModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-[#282F36] rounded-xl border border-[#303943] w-full max-w-2xl shadow-2xl">
-            <div className="flex justify-between items-center p-6 border-b border-[#303943]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-2 sm:p-4" onMouseDown={() => !creating && setShowAddTraderModal(false)}>
+          <div className="bg-[#282F36] rounded-xl border border-[#303943] w-full max-w-2xl shadow-2xl flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4 sm:p-6 border-b border-[#303943] shrink-0">
               <h3 className="text-xl font-semibold text-white">Add New Trader</h3>
               <button 
                 onClick={() => setShowAddTraderModal(false)}
@@ -927,7 +980,7 @@ const handleExecuteAction = async () => {
               </button>
             </div>
             
-            <div className="p-6">
+            <div className="p-4 sm:p-6 overflow-y-auto overscroll-contain min-h-0 flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[#A5AFC4] mb-2">Username *</label>
@@ -1083,18 +1136,20 @@ const handleExecuteAction = async () => {
               </div>
             </div>
             
-            <div className="flex justify-end gap-3 p-6 border-t border-[#303943]">
-              <button 
+            <div className="flex justify-end gap-3 p-4 sm:p-6 border-t border-[#303943] shrink-0">
+              <button
                 onClick={() => setShowAddTraderModal(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-[#A5AFC4] hover:text-white hover:bg-[#3A434D] transition-colors"
+                disabled={creating}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-[#A5AFC4] hover:text-white hover:bg-[#3A434D] transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleCreateTrader}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium flex items-center shadow-lg"
+                disabled={creating}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium flex items-center shadow-lg disabled:opacity-60"
               >
-                <Plus size={16} className="mr-2" />
+                {creating ? <RefreshCw size={16} className="mr-2 animate-spin" /> : <Plus size={16} className="mr-2" />}
                 Create Trader
               </button>
             </div>
@@ -1104,8 +1159,8 @@ const handleExecuteAction = async () => {
 
       {/* Action Modal (Edit/Delete/Verification) */}
       {showActionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-[#282F36] rounded-xl border border-[#303943] w-full max-w-lg shadow-2xl transform transition-all">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-2 sm:p-4">
+          <div className="bg-[#282F36] rounded-xl border border-[#303943] w-full max-w-lg shadow-2xl transform transition-all max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] overflow-y-auto overscroll-contain">
             
             {/* Modal Header */}
             <div className="flex justify-between items-center p-6 border-b border-[#303943]">

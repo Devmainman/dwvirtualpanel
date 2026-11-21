@@ -18,7 +18,6 @@ import Withdrawal from './pages/transactions/Withdrawal';
 import UpgradeInvoice from './pages/transactions/UpgradeInvoice';
 import OtherInvoice from './pages/transactions/OtherInvoice';
 import BotInvoice from './pages/transactions/BotInvoice';
-import CardInvoice from './pages/transactions/CardInvoice';
 import SignalInvoice from './pages/transactions/SignalInvoice';
 import AssignmentsPopup from './pages/assignments/AssignmentsPopup';
 import AssignmentsForms from './pages/assignments/AssignmentsForms';
@@ -61,7 +60,7 @@ import ProductsOverview from './products/ProductsOverview';
 import RealEstateAdmin from './products/RealEstateAdmin';
 import StakingAdmin from './products/StakingAdmin';
 import StocksAdmin from './products/StocksAdmin';
-import { ColdStorageAdmin, CardsAdmin, WalletsAdmin } from './products/VaultsCardsWallets';
+import { ColdStorageAdmin, WalletsAdmin } from './products/VaultsCardsWallets';
 import { CardSettings, CardInvoices } from './products/CardSystem';
 import { SmartTraderAdmin, BotInvoices } from './products/SmartTraderAdmin';
 import { BlogAdmin } from './products/BlogAdmin';
@@ -110,7 +109,7 @@ function App() {
             <Route path="staking" element={<StakingAdmin />} />
             <Route path="stocks" element={<StocksAdmin />} />
             <Route path="cold-storage" element={<ColdStorageAdmin />} />
-            <Route path="cards" element={<CardsAdmin />} />
+            <Route path="cards" element={<Navigate to="/card-invoices" replace />} />
             <Route path="wallets" element={<WalletsAdmin />} />
             <Route path="markets" element={<MarketsAdmin />} />
             <Route path="packages" element={<PackageTradesAdmin />} />
@@ -152,11 +151,7 @@ function App() {
             <Route path="settings" element={<TradeSettings />} />
           </Route>
 
-          <Route path="cards">
-            <Route index element={<CardsAdmin />} />
-            <Route path="cardssettings" element={<CardsAdmin />} />
-            <Route path="purchasedcards" element={<CardsAdmin />} />
-          </Route>
+          <Route path="cards/*" element={<Navigate to="/card-invoices" replace />} />
 
           <Route path="card-settings" element={<CardSettings />} />
           <Route path="ai-smart-trader" element={<SmartTraderAdmin />} />
